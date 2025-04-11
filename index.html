@@ -317,27 +317,6 @@
     </div>
   </div>
 
-  <!-- Модальное окно авторизации через Telegram -->
-  <div id="loginModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
-      <div class="flex justify-center items-center mb-4">
-        <h3 class="text-lg font-semibold">Вход через Telegram</h3>
-      </div>
-      <div class="flex justify-center">
-        <script async src="https://telegram.org/js/telegram-widget.js?7"
-                data-telegram-login="Freehamster_bot"
-                data-size="large"
-                data-userpic="false"
-                data-request-access="write"
-                data-onauth="onTelegramAuth(user)">
-        </script>
-      </div>
-      <p class="text-xs text-gray-500 text-center mt-4">
-        После авторизации через Telegram вы получите доступ к приложению.
-      </p>
-    </div>
-  </div>
-
   <!-- Модальное окно создания заявки -->
   <div id="addRequestModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto">
@@ -685,130 +664,82 @@
       // Инициализация приложения
       async function initApp() {
         try {
-          const isAuthorized = await checkAuth();
-          if (!isAuthorized) throw new Error('Пользователь не авторизован');
+          // Генерируем уникальный ID для пользователя
+          const userId = generateUserId();
+          
+          // Проверяем существование пользователя в базе
+          const { data: userData, error: userError } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+            
+          if (userError && userError.code !== 'PGRST116') { // Игнорируем ошибку "не найдено"
+            throw userError;
+          }
+          
+          if (!userData) {
+            // Пользователя нет - создаем нового
+            const { error: createError } = await supabaseClient
+              .from('users')
+              .insert([{
+                id: userId,
+                first_name: 'Пользователь',
+                role: 'customer',
+                created_at: new Date().toISOString()
+              }]);
+              
+            if (createError) throw createError;
+            
+            // Создаем фейкового пользователя для состояния
+            state.currentUser = {
+              id: userId,
+              profile: {
+                id: userId,
+                first_name: 'Пользователь',
+                role: 'customer'
+              }
+            };
+            
+            showToast('Новый пользователь создан', 'success');
+          } else {
+            // Пользователь существует - загружаем его данные
+            state.currentUser = {
+              id: userData.id,
+              profile: userData
+            };
+            state.currentRole = userData.role || 'customer';
+          }
+          
+          // Обновляем UI
+          updateProfileUI(state.currentUser.profile);
+          updateRoleUI();
+          
+          // Загружаем данные приложения
           switchTab(state.currentTab);
           await loadInitialData();
           initTheme();
           initLanguage();
           initNotifications();
+          
         } catch (error) {
           console.error('App initialization failed:', error);
           showToast('Не удалось загрузить приложение', 'error');
         }
       }
 
-      // Проверка авторизации
-      async function checkAuth() {
-        try {
-          const { data: { user }, error } = await supabaseClient.auth.getUser();
-          if (error) throw error;
-          if (user) {
-            state.currentUser = user;
-            await loadUserProfile(user.id);
-            return true;
-          } else {
-            showLoginModal();
-            return false;
-          }
-        } catch (error) {
-          console.error('Error checking auth:', error);
-          showLoginModal();
-          return false;
-        }
-      }
-
-      // Функция, вызываемая Telegram-виджетом после авторизации
-      function onTelegramAuth(user) {
-        console.log("Telegram auth data:", user);
+      // Генерация ID пользователя
+      function generateUserId() {
+        // Проверяем, есть ли уже ID в localStorage
+        let userId = localStorage.getItem('userId');
         
-        // Проверка минимально необходимых данных
-        if (!user || !user.id || !user.hash) {
-          showToast('Ошибка авторизации: неверные данные Telegram', 'error');
-          return;
+        if (!userId) {
+          // Генерируем новый ID
+          userId = 'user_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('userId', userId);
         }
         
-        // В реальном приложении здесь должна быть проверка хэша
-        registerTelegramUser(user);
-      }
-
-      // Регистрация/вход через Supabase с данными Telegram
-      async function registerTelegramUser(telegramUser) {
-        try {
-          showLoading("Авторизация через Telegram...");
-          
-          // Генерируем уникальные учетные данные
-          const email = `telegram_${telegramUser.id}@example.com`;
-          const password = generateRandomPassword();
-          
-          let authData;
-          
-          // Пробуем войти
-          const { data: loginData, error: loginError } = 
-            await supabaseClient.auth.signInWithPassword({
-              email,
-              password
-            });
-            
-          if (loginError) {
-            // Если пользователя нет - регистрируем
-            const { data: signUpData, error: signUpError } = 
-              await supabaseClient.auth.signUp({
-                email,
-                password,
-                options: {
-                  data: {
-                    telegram_id: telegramUser.id,
-                    first_name: telegramUser.first_name,
-                    last_name: telegramUser.last_name || '',
-                    username: telegramUser.username || ''
-                  }
-                }
-              });
-              
-            if (signUpError) throw signUpError;
-            authData = signUpData;
-          } else {
-            authData = loginData;
-          }
-          
-          // Сохраняем/обновляем профиль
-          const { error: profileError } = await supabaseClient
-            .from('users')
-            .upsert({
-              id: authData.user.id,
-              telegram_id: telegramUser.id,
-              first_name: telegramUser.first_name,
-              last_name: telegramUser.last_name || '',
-              username: telegramUser.username || '',
-              avatar_url: telegramUser.photo_url || '',
-              role: 'customer'
-            }, { onConflict: 'id' });
-            
-          if (profileError) throw profileError;
-          
-          // Обновляем состояние
-          state.currentUser = authData.user;
-          await loadUserProfile(authData.user.id);
-          
-          // Закрываем модалку и обновляем интерфейс
-          closeLoginModal();
-          switchTab(state.currentTab);
-          await loadInitialData();
-          
-          showToast('Успешная авторизация через Telegram', 'success');
-          
-        } catch (error) {
-          console.error('Ошибка авторизации Telegram:', error);
-          showToast(`Ошибка авторизации: ${error.message}`, 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Генерация случайного пароля
-      function generateRandomPassword() {
-        return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        return userId;
       }
 
       // Загрузка профиля пользователя
@@ -2580,16 +2511,6 @@
         }, 3000);
       }
 
-      // Показать модальное окно авторизации
-      function showLoginModal() {
-        document.getElementById('loginModal').classList.remove('hidden');
-      }
-
-      // Закрыть модальное окно авторизации
-      function closeLoginModal() {
-        document.getElementById('loginModal').classList.add('hidden');
-      }
-
       // Настройка обработчиков событий
       function setupEventListeners() {
         // Вкладки
@@ -2763,6 +2684,7 @@
       }
 
       // Запуск приложения
+      setupEventListeners();
       initApp();
     });
   </script>
