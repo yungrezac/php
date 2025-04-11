@@ -56,7 +56,7 @@
   <div id="topBar" class="fixed top-0 left-0 w-full h-12 flex items-center justify-center border-b bg-white font-semibold text-gray-800 relative z-10 shadow-sm">
     <span id="topBarTitle">Заявки</span>
     <div id="notifIconWrapper" class="absolute right-4 cursor-pointer">
-      <ion-icon name="notifications-outline" class="text-2xl text-gray-600 hover:text-blue-500 smooth-transition"></ion-icon>
+      <ion-icon name="notifications-outline" class="text-2xl text-gray-600 mb-1 hover:text-blue-500 smooth-transition"></ion-icon>
       <span id="notifDot" class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden"></span>
     </div>
     <div id="notifPanel" class="hidden absolute right-2 top-full mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-sm text-gray-700 z-20">
@@ -192,7 +192,7 @@
 
   <div id="tabContent-profile" class="tabContent px-4 mt-12 pb-16 hidden">
     <div class="bg-gray-100 rounded-lg p-4 mb-4 flex items-center">
-      <div id="profileAvatar" class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4 avatar-initial">
+      <div id="profileAvatar" class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4 avatar-initial bg-blue-500">
         П
       </div>
       <div>
@@ -473,11 +473,11 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">Уведомления</label>
           <div class="space-y-2">
             <label class="flex items-center">
-              <input type="checkbox" id="notifMessages" class="mr-2 rounded text-blue-500 focus:ring-blue-500">
+              <input type="checkbox" id="notifMessages" class="mr-2 rounded text-blue-500 focus:ring-blue-500" checked>
               <span class="text-sm">Сообщения в чате</span>
             </label>
             <label class="flex items-center">
-              <input type="checkbox" id="notifRequests" class="mr-2 rounded text-blue-500 focus:ring-blue-500">
+              <input type="checkbox" id="notifRequests" class="mr-2 rounded text-blue-500 focus:ring-blue-500" checked>
               <span class="text-sm">Обновления заявок</span>
             </label>
             <label class="flex items-center">
@@ -587,6 +587,29 @@
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw';
       const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+      // Проверка подключения к Supabase
+      async function testSupabaseConnection() {
+        try {
+          const { data, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .limit(1);
+          
+          if (error) {
+            console.error('Supabase error:', error);
+            showToast('Ошибка подключения к Supabase: ' + error.message, 'error');
+            return false;
+          }
+          
+          console.log('Supabase connection successful');
+          return true;
+        } catch (err) {
+          console.error('Connection failed:', err);
+          showToast('Критическая ошибка подключения', 'error');
+          return false;
+        }
+      }
+
       // Определение вкладок и иконок
       const tabTitles = { articles: 'Статьи', market: 'Маркет', requests: 'Заявки', profile: 'Профиль' };
       const tabIcons = {
@@ -663,7 +686,15 @@
 
       // Инициализация приложения
       async function initApp() {
+        showLoading('Инициализация приложения...');
+        
         try {
+          // Проверяем подключение к Supabase
+          const isConnected = await testSupabaseConnection();
+          if (!isConnected) {
+            throw new Error('Не удалось подключиться к Supabase');
+          }
+          
           // Генерируем уникальный ID для пользователя
           const userId = generateUserId();
           
@@ -724,7 +755,16 @@
           
         } catch (error) {
           console.error('App initialization failed:', error);
-          showToast('Не удалось загрузить приложение', 'error');
+          showToast(`Не удалось загрузить приложение: ${error.message}`, 'error');
+          
+          // Добавляем кнопку повторной попытки
+          const retryBtn = document.createElement('button');
+          retryBtn.textContent = 'Повторить попытку';
+          retryBtn.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-lg';
+          retryBtn.onclick = initApp;
+          document.body.appendChild(retryBtn);
+        } finally {
+          hideLoading();
         }
       }
 
