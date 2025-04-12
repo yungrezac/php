@@ -8,11 +8,14 @@ export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
  * затем ищет пользователя в таблице 'users'. Если пользователь не найден, создаёт нового.
  */
 export async function getOrCreateUser() {
+  // Если браузер поддерживает crypto.randomUUID, используем его
   let userId = localStorage.getItem('userId');
   if (!userId) {
-    userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    // Генерируем стандартный UUID без префикса "user_"
+    userId = crypto.randomUUID();  
     localStorage.setItem('userId', userId);
   }
+  // Дальнейшая логика поиска или создания пользователя в базе не изменяется.
   let { data, error } = await supabase
     .from('users')
     .select('*')
