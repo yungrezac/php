@@ -12,7 +12,7 @@ export async function getOrCreateUser() {
   let userId = localStorage.getItem('userId');
   if (!userId) {
     // Генерируем стандартный UUID без префикса "user_"
-    userId = crypto.randomUUID();  
+    userId =  
     localStorage.setItem('userId', userId);
   }
   // Дальнейшая логика поиска или создания пользователя в базе не изменяется.
