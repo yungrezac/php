@@ -4,90 +4,91 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MiniApp</title>
-  <!-- Подключаем Tailwind CSS -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Ionicons -->
   <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-  <!-- Supabase JS (v2) -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Telegram WebApp (если запускается внутри Telegram) -->
+  <script src="https://telegram.org/js/telegram-webapp.js"></script>
   <style>
+    /* Общие стили и анимации */
     .fade-in { animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .slide-up { animation: slideUp 0.3s ease-out; }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .pulse { animation: pulse 2s infinite; }
     @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(59,130,246, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(59,130,246, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(59,130,246, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(59,130,246,0); }
+      100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
     }
     .smooth-transition { transition: all 0.3s ease; }
+    /* Стили скроллбара */
     ::-webkit-scrollbar { width: 6px; height:6px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #555; }
     * { scrollbar-width: thin; scrollbar-color: #888 #f1f1f1; }
-    .toggle { position: relative; display:inline-block; width:50px; height:24px; }
-    .toggle input { opacity: 0; width:0; height:0; }
-    .toggle-slider {
-      position: absolute; cursor:pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc; transition: .4s; border-radius:24px;
-    }
-    .toggle-slider:before {
-      position: absolute; content:"";
-      height: 16px; width: 16px; left:4px; bottom:4px;
-      background-color: white; transition: .4s; border-radius:50%;
-    }
-    .toggle input:checked + .toggle-slider { background-color: #3b82f6; }
-    .toggle input:checked + .toggle-slider:before { transform: translateX(26px); }
-    .avatar-initial {
+    /* Стили для модальных окон */
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background-color: rgba(0,0,0,0.5);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      color: white;
+      padding: 1rem;
     }
+    .hidden { display: none; }
   </style>
 </head>
 <body class="bg-white text-black font-sans antialiased">
-  <!-- Top Bar -->
+  <!-- Верхняя панель -->
   <div id="topBar" class="fixed top-0 left-0 w-full h-12 flex items-center justify-center border-b bg-white font-semibold text-gray-800 relative z-10 shadow-sm">
     <span id="topBarTitle">Заявки</span>
+    <!-- Иконка уведомлений -->
     <div id="notifIconWrapper" class="absolute right-4 cursor-pointer">
-      <ion-icon name="notifications-outline" class="text-2xl text-gray-600 mb-1 hover:text-blue-500 smooth-transition"></ion-icon>
+      <ion-icon name="notifications-outline" class="text-2xl text-gray-600 hover:text-blue-500 smooth-transition"></ion-icon>
       <span id="notifDot" class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden"></span>
     </div>
+    <!-- Панель уведомлений -->
     <div id="notifPanel" class="hidden absolute right-2 top-full mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-sm text-gray-700 z-20">
       <div class="flex justify-between items-center mb-2 pb-2 border-b">
         <h4 class="font-medium">Уведомления</h4>
         <button id="markAllAsReadBtn" class="text-blue-500 text-xs">Прочитать все</button>
       </div>
-      <div class="space-y-3 max-h-80 overflow-y-auto" id="notificationsList"></div>
+      <div id="notificationsList" class="space-y-3 max-h-80 overflow-y-auto"></div>
     </div>
   </div>
 
-  <!-- Основные разделы -->
+  <!-- Основные разделы (вкладки) -->
+  <!-- Статьи -->
   <div id="tabContent-articles" class="tabContent px-4 mt-12 pb-16 hidden">
     <div class="relative mb-4">
-      <input type="text" id="articleSearch" placeholder="Поиск статей..." class="w-full border border-gray-300 rounded-full px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition">
+      <input type="text" id="articleSearch" placeholder="Поиск статей..." class="w-full border border-gray-300 rounded-full px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 smooth-transition">
       <ion-icon name="search-outline" class="absolute left-3 top-3 text-gray-400 text-lg"></ion-icon>
     </div>
-    <div class="space-y-3" id="articlesList"></div>
-    <div id="articlesLoading" class="flex justify-center py-4">
+    <div id="articlesList" class="space-y-3"></div>
+    <div id="articlesLoading" class="flex justify-center py-4 hidden">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
     </div>
   </div>
 
+  <!-- Маркет -->
   <div id="tabContent-market" class="tabContent px-4 mt-12 pb-16 hidden">
+    <!-- Добавление шаблона (видно только для разработчика) -->
     <div id="addTemplateCard" class="hidden border-2 border-dashed border-gray-400 rounded-lg p-4 flex items-center justify-center text-gray-600 mb-4 cursor-pointer hover:bg-gray-50 smooth-transition">
       <ion-icon name="add-circle-outline" class="text-2xl mr-2"></ion-icon>
       <span>Добавить шаблон</span>
     </div>
+    <!-- Поиск и фильтры для шаблонов -->
     <div class="flex mb-4 gap-2">
       <div class="relative flex-1">
-        <input type="text" placeholder="Поиск шаблонов..." id="marketSearch" class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition">
+        <input type="text" placeholder="Поиск шаблонов..." id="marketSearch" class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 smooth-transition">
         <ion-icon name="search-outline" class="absolute left-3 top-3 text-gray-400 text-lg"></ion-icon>
       </div>
       <button id="filterTemplatesBtn" class="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 smooth-transition">
@@ -98,7 +99,7 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
-          <select id="templateCategoryFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <select id="templateCategoryFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
             <option value="all">Все</option>
             <option value="UI">UI шаблоны</option>
             <option value="functional">Функциональные</option>
@@ -108,7 +109,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
-          <select id="templatePriceFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <select id="templatePriceFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
             <option value="all">Любая</option>
             <option value="0-10">0-10 TON</option>
             <option value="10-50">10-50 TON</option>
@@ -117,38 +118,41 @@
         </div>
       </div>
       <div class="mt-3 flex justify-between">
-        <button id="resetFiltersBtn" class="text-blue-500 text-sm hover:text-blue-700 smooth-transition">Сбросить</button>
-        <button id="applyFiltersBtn" class="bg-blue-500 text-white text-sm px-3 py-1 rounded-lg hover:bg-blue-600 smooth-transition">Применить</button>
+        <button id="resetFiltersBtn" class="text-blue-500 text-sm hover:text-blue-700">Сбросить</button>
+        <button id="applyFiltersBtn" class="bg-blue-500 text-white text-sm px-3 py-1 rounded-lg hover:bg-blue-600">Применить</button>
       </div>
     </div>
-    <div class="space-y-3" id="templatesList"></div>
-    <div id="templatesLoading" class="flex justify-center py-4">
+    <div id="templatesList" class="space-y-3"></div>
+    <div id="templatesLoading" class="flex justify-center py-4 hidden">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
     </div>
     <div id="noTemplatesMessage" class="hidden text-center py-8 text-gray-500">
       <ion-icon name="search-outline" class="text-3xl mb-2"></ion-icon>
       <p>Шаблонов не найдено</p>
-      <button id="resetFiltersBtn2" class="text-blue-500 text-sm mt-2 hover:text-blue-700 smooth-transition">Сбросить фильтры</button>
+      <button id="resetFiltersBtn2" class="text-blue-500 text-sm mt-2 hover:text-blue-700">Сбросить фильтры</button>
     </div>
   </div>
 
+  <!-- Заявки -->
   <div id="tabContent-requests" class="tabContent px-4 mt-12 pb-16">
+    <!-- Режим заказчика -->
     <div id="customerRequests">
       <button id="newRequestBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg mb-4 w-full flex items-center justify-center smooth-transition pulse">
         <ion-icon name="add-outline" class="text-xl mr-2"></ion-icon>
         <span>Новая заявка</span>
       </button>
-      <div class="space-y-3" id="customerRequestsList"></div>
+      <div id="customerRequestsList" class="space-y-3"></div>
       <div id="noCustomerRequests" class="hidden text-center py-8 text-gray-500">
         <ion-icon name="clipboard-outline" class="text-3xl mb-2"></ion-icon>
         <p>У вас пока нет заявок</p>
-        <button id="createRequestBtn" class="text-blue-500 text-sm mt-2 hover:text-blue-700 smooth-transition">Создать заявку</button>
+        <button id="createRequestBtn" class="text-blue-500 text-sm mt-2 hover:text-blue-700">Создать заявку</button>
       </div>
     </div>
+    <!-- Режим разработчика -->
     <div id="developerRequests" class="hidden">
       <div class="flex mb-4 gap-2">
         <div class="relative flex-1">
-          <input type="text" placeholder="Поиск заявок..." id="requestSearch" class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition">
+          <input type="text" placeholder="Поиск заявок..." id="requestSearch" class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 smooth-transition">
           <ion-icon name="search-outline" class="absolute left-3 top-3 text-gray-400 text-lg"></ion-icon>
         </div>
         <button id="filterRequestsBtn" class="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 smooth-transition">
@@ -159,7 +163,7 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Бюджет</label>
-            <select id="requestBudgetFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <select id="requestBudgetFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
               <option value="all">Любой</option>
               <option value="0-50">0-50 TON</option>
               <option value="50-100">50-100 TON</option>
@@ -168,7 +172,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Срок</label>
-            <select id="requestDeadlineFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <select id="requestDeadlineFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
               <option value="all">Любой</option>
               <option value="1-3">1-3 дня</option>
               <option value="3-7">3-7 дней</option>
@@ -177,48 +181,49 @@
           </div>
         </div>
         <div class="mt-3 flex justify-between">
-          <button id="resetRequestFiltersBtn" class="text-blue-500 text-sm hover:text-blue-700 smooth-transition">Сбросить</button>
-          <button id="applyRequestFiltersBtn" class="bg-blue-500 text-white text-sm px-3 py-1 rounded-lg hover:bg-blue-600 smooth-transition">Применить</button>
+          <button id="resetRequestFiltersBtn" class="text-blue-500 text-sm hover:text-blue-700">Сбросить</button>
+          <button id="applyRequestFiltersBtn" class="bg-blue-500 text-white text-sm px-3 py-1 rounded-lg hover:bg-blue-600">Применить</button>
         </div>
       </div>
-      <div class="space-y-3" id="developerRequestsList"></div>
+      <div id="developerRequestsList" class="space-y-3"></div>
       <div id="noDeveloperRequests" class="hidden text-center py-8 text-gray-500">
         <ion-icon name="clipboard-outline" class="text-3xl mb-2"></ion-icon>
         <p>Нет доступных заявок</p>
-        <button id="refreshRequestsBtn" class="text-blue-500 text-sm mt-2 hover:text-blue-700 smooth-transition">Обновить</button>
+        <button id="refreshRequestsBtn" class="text-blue-500 text-sm mt-2 hover:text-blue-700">Обновить</button>
       </div>
     </div>
   </div>
 
+  <!-- Профиль -->
   <div id="tabContent-profile" class="tabContent px-4 mt-12 pb-16 hidden">
     <div class="bg-gray-100 rounded-lg p-4 mb-4 flex items-center">
-      <div id="profileAvatar" class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4 avatar-initial bg-blue-500">
+      <div id="profileAvatar" class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4 bg-blue-500">
         П
       </div>
       <div>
         <div id="profileName" class="text-lg font-semibold">Пользователь</div>
         <div id="profileUsername" class="text-sm text-gray-600"></div>
         <div id="profileRating" class="flex items-center mt-1">
-          <div class="flex text-yellow-400 text-sm" id="ratingStars">
+          <div id="ratingStars" class="flex text-yellow-400 text-sm">
             <ion-icon name="star"></ion-icon>
             <ion-icon name="star"></ion-icon>
             <ion-icon name="star"></ion-icon>
             <ion-icon name="star"></ion-icon>
             <ion-icon name="star-half"></ion-icon>
           </div>
-          <span class="text-xs text-gray-500 ml-1" id="ratingText">4.8 (12 отзывов)</span>
+          <span id="ratingText" class="text-xs text-gray-500 ml-1">4.8 (12 отзывов)</span>
         </div>
       </div>
     </div>
     <div id="walletSection" class="mb-4">
-      <button id="connectWalletBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg w-full flex items-center justify-center smooth-transition">
+      <button id="connectWalletBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg w-full flex items-center justify-center">
         <ion-icon name="wallet-outline" class="text-xl mr-2"></ion-icon>
         <span>Подключить TON кошелек</span>
       </button>
       <div id="walletInfo" class="hidden p-4 bg-gray-100 rounded-lg mt-2">
         <div class="flex justify-between items-center mb-2">
           <div class="text-sm font-medium text-gray-700">TON Кошелек</div>
-          <button id="disconnectWalletBtn" class="text-blue-500 text-sm hover:text-blue-700 smooth-transition">Отключить</button>
+          <button id="disconnectWalletBtn" class="text-blue-500 text-sm hover:text-blue-700">Отключить</button>
         </div>
         <div id="walletAddress" class="text-xs text-gray-500 break-all bg-white p-2 rounded mb-3"></div>
         <div class="flex justify-between items-center">
@@ -226,73 +231,47 @@
           <div id="walletBalance" class="font-semibold">0 TON</div>
         </div>
       </div>
-      <button id="topUpBalanceBtn" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md mt-2 hidden">
-        Пополнить баланс
-      </button>
+      <button id="topUpBalanceBtn" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md mt-2 hidden">Пополнить баланс</button>
     </div>
     <div class="flex justify-around mt-4">
       <button id="settingsBtn" class="px-4 py-2 bg-gray-200 rounded-md">Настройки</button>
       <button id="helpBtn" class="px-4 py-2 bg-gray-200 rounded-md">Помощь</button>
       <button id="aboutBtn" class="px-4 py-2 bg-gray-200 rounded-md">О приложении</button>
     </div>
-    <button id="editProfileBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-md mt-4">
-      Редактировать профиль
-    </button>
+    <button id="editProfileBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-md mt-4">Редактировать профиль</button>
     <div class="grid grid-cols-2 gap-3 mt-4">
       <div class="bg-blue-50 p-3 rounded-lg">
         <div class="text-xs text-blue-600 mb-1">Завершено заказов</div>
-        <div class="text-xl font-semibold" id="completedOrders">0</div>
+        <div id="completedOrders" class="text-xl font-semibold">0</div>
       </div>
       <div class="bg-green-50 p-3 rounded-lg">
         <div class="text-xs text-green-600 mb-1">Заработано</div>
-        <div class="text-xl font-semibold" id="earnedAmount">0 TON</div>
+        <div id="earnedAmount" class="text-xl font-semibold">0 TON</div>
       </div>
       <div class="bg-purple-50 p-3 rounded-lg">
         <div class="text-xs text-purple-600 mb-1">Шаблонов продано</div>
-        <div class="text-xl font-semibold" id="templatesSold">0</div>
+        <div id="templatesSold" class="text-xl font-semibold">0</div>
       </div>
       <div class="bg-yellow-50 p-3 rounded-lg">
         <div class="text-xs text-yellow-600 mb-1">Рейтинг</div>
-        <div class="text-xl font-semibold" id="userRating">0</div>
+        <div id="userRating" class="text-xl font-semibold">0</div>
       </div>
     </div>
     <div>
       <h3 class="font-medium mb-2">История операций</h3>
-      <ul class="text-sm text-gray-700 space-y-3" id="historyList"></ul>
-      <button id="loadMoreHistory" class="w-full text-center text-blue-500 text-sm py-2 hover:text-blue-700 smooth-transition hidden">
-        Показать еще
-      </button>
+      <ul id="historyList" class="text-sm text-gray-700 space-y-3"></ul>
+      <button id="loadMoreHistory" class="w-full text-center text-blue-500 text-sm py-2 hover:text-blue-700 smooth-transition hidden">Показать еще</button>
     </div>
   </div>
 
-  <!-- Bottom Nav Bar -->
-  <div id="bottomNav" class="fixed bottom-0 left-0 w-full h-14 border-t bg-white flex justify-around items-center z-10 shadow-sm">
-    <button id="tab-articles" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-articles" name="document-text-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
-      <span class="text-xs text-gray-600">Статьи</span>
-    </button>
-    <button id="tab-market" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-market" name="pricetag-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
-      <span class="text-xs text-gray-600">Маркет</span>
-    </button>
-    <button id="tab-requests" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-requests" name="clipboard-outline" class="text-2xl text-blue-600 mb-1"></ion-icon>
-      <span class="text-xs text-blue-600">Заявки</span>
-    </button>
-    <button id="tab-profile" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-profile" name="person-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
-      <span class="text-xs text-gray-600">Профиль</span>
-    </button>
-  </div>
-
-  <!-- Chat Overlay -->
+  <!-- Чат-оверлей -->
   <div id="chatOverlay" class="hidden fixed inset-0 z-50 flex flex-col bg-white">
     <div class="h-12 flex items-center border-b px-4 bg-white sticky top-0 z-10">
       <button id="closeChatBtn" class="mr-2">
         <ion-icon name="chevron-back-outline" class="text-2xl text-blue-600"></ion-icon>
       </button>
-      <div class="flex-1 font-medium truncate" id="chatRequestTitle">Заявка</div>
-      <button id="chatRequestActionBtn" class="text-blue-600 text-sm font-medium hover:text-blue-800 smooth-transition hidden"></button>
+      <div id="chatRequestTitle" class="flex-1 font-medium truncate">Заявка</div>
+      <button id="chatRequestActionBtn" class="text-blue-600 text-sm font-medium hover:text-blue-800 hidden"></button>
     </div>
     <div id="chatMessages" class="flex-1 overflow-y-auto px-4 py-2 space-y-3"></div>
     <div class="border-t p-3 flex items-center bg-white sticky bottom-0">
@@ -312,13 +291,13 @@
           </button>
         </div>
       </div>
-      <input id="chatInput" type="text" class="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition" placeholder="Написать сообщение..." />
+      <input id="chatInput" type="text" class="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 smooth-transition" placeholder="Написать сообщение...">
       <button id="chatSendBtn" class="ml-2 text-blue-600 font-semibold text-sm hover:text-blue-800 smooth-transition">Отправить</button>
     </div>
   </div>
 
   <!-- Модальное окно создания заявки -->
-  <div id="addRequestModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div id="addRequestModal" class="modal hidden">
     <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Новая заявка</h3>
@@ -329,22 +308,19 @@
       <div class="space-y-4">
         <div>
           <label for="requestTitle" class="block text-sm font-medium text-gray-700 mb-1">Название заявки*</label>
-          <input type="text" id="requestTitle" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <p id="requestTitleError" class="hidden text-red-500 text-xs mt-1">Пожалуйста, введите название</p>
+          <input type="text" id="requestTitle" class="w-full border border-gray-300 rounded-lg px-4 py-2">
         </div>
         <div>
           <label for="requestDescription" class="block text-sm font-medium text-gray-700 mb-1">Описание*</label>
-          <textarea id="requestDescription" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
-          <p id="requestDescError" class="hidden text-red-500 text-xs mt-1">Пожалуйста, введите описание</p>
+          <textarea id="requestDescription" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2"></textarea>
         </div>
         <div>
           <label for="requestBudget" class="block text-sm font-medium text-gray-700 mb-1">Бюджет (TON)*</label>
-          <input type="number" id="requestBudget" min="1" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <p id="requestBudgetError" class="hidden text-red-500 text-xs mt-1">Пожалуйста, укажите бюджет</p>
+          <input type="number" id="requestBudget" min="1" class="w-full border border-gray-300 rounded-lg px-4 py-2">
         </div>
         <div>
           <label for="requestDeadline" class="block text-sm font-medium text-gray-700 mb-1">Срок выполнения*</label>
-          <select id="requestDeadline" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <select id="requestDeadline" class="w-full border border-gray-300 rounded-lg px-4 py-2">
             <option value="1">1 день</option>
             <option value="3">3 дня</option>
             <option value="7" selected>7 дней</option>
@@ -352,8 +328,7 @@
             <option value="custom">Другой срок</option>
           </select>
           <div id="customDeadlineContainer" class="hidden mt-2">
-            <input type="number" id="customDeadline" min="1" placeholder="Укажите количество дней" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <p id="customDeadlineError" class="hidden text-red-500 text-xs mt-1">Пожалуйста, укажите срок</p>
+            <input type="number" id="customDeadline" min="1" placeholder="Укажите количество дней" class="w-full border border-gray-300 rounded-lg px-4 py-2">
           </div>
         </div>
         <div>
@@ -364,7 +339,6 @@
             <p id="requestFilesNames" class="text-xs text-gray-400 mt-2 hidden"></p>
           </div>
           <input type="file" id="requestFiles" class="hidden" multiple>
-          <p id="requestFilesError" class="hidden text-red-500 text-xs mt-1"></p>
         </div>
       </div>
       <div class="flex justify-end space-x-3 mt-6">
@@ -375,7 +349,7 @@
   </div>
 
   <!-- Модальное окно добавления шаблона -->
-  <div id="addTemplateModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div id="addTemplateModal" class="modal hidden">
     <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Добавить шаблон</h3>
@@ -386,22 +360,19 @@
       <div class="space-y-4">
         <div>
           <label for="templateTitle" class="block text-sm font-medium text-gray-700 mb-1">Название шаблона*</label>
-          <input type="text" id="templateTitle" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <p id="templateTitleError" class="hidden text-red-500 text-xs mt-1">Пожалуйста, введите название</p>
+          <input type="text" id="templateTitle" class="w-full border border-gray-300 rounded-lg px-4 py-2">
         </div>
         <div>
           <label for="templateDescription" class="block text-sm font-medium text-gray-700 mb-1">Описание*</label>
-          <textarea id="templateDescription" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
-          <p id="templateDescError" class="hidden text-red-500 text-xs mt-1">Пожалуйста, введите описание</p>
+          <textarea id="templateDescription" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2"></textarea>
         </div>
         <div>
           <label for="templatePrice" class="block text-sm font-medium text-gray-700 mb-1">Цена (TON)*</label>
-          <input type="number" id="templatePrice" min="0" step="0.1" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <p id="templatePriceError" class="hidden text-red-500 text-xs mt-1">Пожалуйста, укажите цену</p>
+          <input type="number" id="templatePrice" min="0" step="0.1" class="w-full border border-gray-300 rounded-lg px-4 py-2">
         </div>
         <div>
           <label for="templateCategory" class="block text-sm font-medium text-gray-700 mb-1">Категория*</label>
-          <select id="templateCategory" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <select id="templateCategory" class="w-full border border-gray-300 rounded-lg px-4 py-2">
             <option value="UI">UI шаблоны</option>
             <option value="functional">Функциональные</option>
             <option value="games">Игры</option>
@@ -416,7 +387,6 @@
             <p id="templateFileName" class="text-xs text-gray-400 mt-2 hidden"></p>
           </button>
           <input type="file" id="templateFile" class="hidden" accept=".zip">
-          <p id="templateFileError" class="hidden text-red-500 text-xs mt-1"></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Превью (изображение)</label>
@@ -436,7 +406,7 @@
   </div>
 
   <!-- Модальное окно настроек -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div id="settingsModal" class="modal hidden">
     <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Настройки</h3>
@@ -464,7 +434,7 @@
         </div>
         <div>
           <label for="languageSelect" class="block text-sm font-medium text-gray-700 mb-1">Язык</label>
-          <select id="languageSelect" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <select id="languageSelect" class="w-full border border-gray-300 rounded-lg px-4 py-2">
             <option value="ru">Русский</option>
             <option value="en">English</option>
           </select>
@@ -473,15 +443,15 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">Уведомления</label>
           <div class="space-y-2">
             <label class="flex items-center">
-              <input type="checkbox" id="notifMessages" class="mr-2 rounded text-blue-500 focus:ring-blue-500" checked>
+              <input type="checkbox" id="notifMessages" class="mr-2 rounded text-blue-500" checked>
               <span class="text-sm">Сообщения в чате</span>
             </label>
             <label class="flex items-center">
-              <input type="checkbox" id="notifRequests" class="mr-2 rounded text-blue-500 focus:ring-blue-500" checked>
+              <input type="checkbox" id="notifRequests" class="mr-2 rounded text-blue-500" checked>
               <span class="text-sm">Обновления заявок</span>
             </label>
             <label class="flex items-center">
-              <input type="checkbox" id="notifNews" class="mr-2 rounded text-blue-500 focus:ring-blue-500">
+              <input type="checkbox" id="notifNews" class="mr-2 rounded text-blue-500">
               <span class="text-sm">Новости и обновления</span>
             </label>
           </div>
@@ -494,7 +464,7 @@
   </div>
 
   <!-- Модальное окно помощи -->
-  <div id="helpModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div id="helpModal" class="modal hidden">
     <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Помощь</h3>
@@ -523,7 +493,7 @@
   </div>
 
   <!-- Модальное окно "О приложении" -->
-  <div id="aboutModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div id="aboutModal" class="modal hidden">
     <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">О приложении</h3>
@@ -553,7 +523,7 @@
   </div>
 
   <!-- Модальное окно подтверждения -->
-  <div id="confirmationModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div id="confirmationModal" class="modal hidden">
     <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
       <div class="flex justify-between items-center mb-4">
         <h3 id="confirmationTitle" class="text-lg font-semibold">Подтверждение</h3>
@@ -579,2154 +549,27 @@
     </div>
   </div>
 
-  <!-- Основной скрипт -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Инициализация Supabase
-      const supabaseUrl = 'https://kwwszbvcwchujbyvswqp.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw';
-      const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-      // Проверка подключения к Supabase
-      async function testSupabaseConnection() {
-        try {
-          const { data, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .limit(1);
-          
-          if (error) {
-            console.error('Supabase error:', error);
-            showToast('Ошибка подключения к Supabase: ' + error.message, 'error');
-            return false;
-          }
-          
-          console.log('Supabase connection successful');
-          return true;
-        } catch (err) {
-          console.error('Connection failed:', err);
-          showToast('Критическая ошибка подключения', 'error');
-          return false;
-        }
-      }
-
-      // Определение вкладок и иконок
-      const tabTitles = { articles: 'Статьи', market: 'Маркет', requests: 'Заявки', profile: 'Профиль' };
-      const tabIcons = {
-        articles: { outline: 'document-text-outline', filled: 'document-text' },
-        market: { outline: 'pricetag-outline', filled: 'pricetag' },
-        requests: { outline: 'clipboard-outline', filled: 'clipboard' },
-        profile: { outline: 'person-outline', filled: 'person' }
-      };
-
-      // Состояние приложения
-      const state = {
-        currentTab: 'requests',
-        currentRole: 'customer',
-        currentUser: null,
-        walletConnected: false,
-        currentChatRequestId: null,
-        chatMessages: [],
-        theme: 'light',
-        notifications: { messages: true, requests: true, news: false },
-        language: 'ru',
-        historyItems: [],
-        articles: [],
-        templates: [],
-        requests: [],
-        isLoading: false,
-        currentArticleId: null,
-        currentTemplateId: null,
-        currentRequestId: null,
-        historyPage: 1,
-        historyPerPage: 5,
-        pendingAction: null,
-        pendingActionData: null,
-        selectedFiles: [],
-        selectedTemplateFile: null,
-        selectedTemplatePreview: null,
-        articlesCache: null,
-        articlesCacheTimestamp: null,
-        chatSubscription: null
-      };
-
-      // Универсальный обработчик событий
-      function bindEvent(element, eventName, handler) {
-        if (element) {
-          element.addEventListener(eventName, handler);
-          if ('ontouchstart' in window && eventName === 'click') {
-            element.addEventListener('touchend', (e) => {
-              e.preventDefault();
-              handler(e);
-            });
-          }
-        }
-      }
-
-      // Функция debounce
-      function debounce(func, delay = 300) {
-        let timeout;
-        return function(...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), delay);
-        };
-      }
-
-      // Retry механизм
-      async function executeWithRetry(fn, retries = 2, delay = 500) {
-        for (let i = 0; i <= retries; i++) {
-          try {
-            return await fn();
-          } catch (error) {
-            if (i === retries) throw error;
-            await new Promise(res => setTimeout(res, delay));
-          }
-        }
-      }
-
-      // Инициализация приложения
-      async function initApp() {
-        showLoading('Инициализация приложения...');
-        
-        try {
-          // Проверяем подключение к Supabase
-          const isConnected = await testSupabaseConnection();
-          if (!isConnected) {
-            throw new Error('Не удалось подключиться к Supabase');
-          }
-          
-          // Генерируем уникальный ID для пользователя
-          const userId = generateUserId();
-          
-          // Проверяем существование пользователя в базе
-          const { data: userData, error: userError } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .single();
-            
-          if (userError && userError.code !== 'PGRST116') { // Игнорируем ошибку "не найдено"
-            throw userError;
-          }
-          
-          if (!userData) {
-            // Пользователя нет - создаем нового
-            const { error: createError } = await supabaseClient
-              .from('users')
-              .insert([{
-                id: userId,
-                first_name: 'Пользователь',
-                role: 'customer',
-                created_at: new Date().toISOString()
-              }]);
-              
-            if (createError) throw createError;
-            
-            // Создаем фейкового пользователя для состояния
-            state.currentUser = {
-              id: userId,
-              profile: {
-                id: userId,
-                first_name: 'Пользователь',
-                role: 'customer'
-              }
-            };
-            
-            showToast('Новый пользователь создан', 'success');
-          } else {
-            // Пользователь существует - загружаем его данные
-            state.currentUser = {
-              id: userData.id,
-              profile: userData
-            };
-            state.currentRole = userData.role || 'customer';
-          }
-          
-          // Обновляем UI
-          updateProfileUI(state.currentUser.profile);
-          updateRoleUI();
-          
-          // Загружаем данные приложения
-          switchTab(state.currentTab);
-          await loadInitialData();
-          initTheme();
-          initLanguage();
-          initNotifications();
-          
-        } catch (error) {
-          console.error('App initialization failed:', error);
-          showToast(`Не удалось загрузить приложение: ${error.message}`, 'error');
-          
-          // Добавляем кнопку повторной попытки
-          const retryBtn = document.createElement('button');
-          retryBtn.textContent = 'Повторить попытку';
-          retryBtn.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-lg';
-          retryBtn.onclick = initApp;
-          document.body.appendChild(retryBtn);
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Генерация ID пользователя
-      function generateUserId() {
-        // Проверяем, есть ли уже ID в localStorage
-        let userId = localStorage.getItem('userId');
-        
-        if (!userId) {
-          // Генерируем новый ID
-          userId = 'user_' + Math.random().toString(36).substr(2, 9);
-          localStorage.setItem('userId', userId);
-        }
-        
-        return userId;
-      }
-
-      // Загрузка профиля пользователя
-      async function loadUserProfile(userId) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .single();
-            
-          if (error) throw error;
-          
-          if (data) {
-            state.currentUser.profile = data;
-            state.currentRole = data.role || 'customer';
-            updateProfileUI(data);
-            await loadUserWallet(userId);
-            await loadUserStats(userId);
-            updateRoleUI();
-          }
-        } catch (error) {
-          console.error('Error loading user profile:', error);
-          showToast('Ошибка загрузки профиля', 'error');
-        }
-      }
-
-      // Загрузка кошелька пользователя
-      async function loadUserWallet(userId) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-            
-          if (error) throw error;
-          
-          if (data) {
-            state.walletConnected = true;
-            updateWalletUI(data);
-          }
-        } catch (error) {
-          console.error('Error loading wallet:', error);
-          showToast('Ошибка загрузки кошелька', 'error');
-        }
-      }
-
-      // Загрузка статистики пользователя
-      async function loadUserStats(userId) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('user_stats')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-            
-          if (error) throw error;
-          
-          if (data) {
-            updateUserStatsUI(data);
-          }
-        } catch (error) {
-          console.error('Error loading user stats:', error);
-        }
-      }
-
-      // Обновление UI профиля
-      function updateProfileUI(profile) {
-        if (profile.first_name) {
-          const name = `${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''}`;
-          document.getElementById('profileName').textContent = name;
-          
-          // Обновляем аватар
-          const avatar = document.getElementById('profileAvatar');
-          avatar.textContent = profile.first_name[0].toUpperCase();
-          
-          // Если есть URL аватара, используем его
-          if (profile.avatar_url) {
-            avatar.style.backgroundImage = `url(${profile.avatar_url})`;
-            avatar.style.backgroundSize = 'cover';
-            avatar.style.backgroundPosition = 'center';
-            avatar.textContent = '';
-          } else {
-            // Генерируем цвет на основе имени
-            const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-red-500', 'bg-yellow-500'];
-            const colorIndex = profile.first_name.charCodeAt(0) % colors.length;
-            avatar.className = `w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4 ${colors[colorIndex]}`;
-            avatar.textContent = profile.first_name[0].toUpperCase();
-          }
-        }
-        
-        if (profile.username) {
-          document.getElementById('profileUsername').textContent = `@${profile.username}`;
-        }
-        
-        if (profile.rating) {
-          updateRatingUI(profile.rating, profile.reviews_count || 0);
-        }
-      }
-
-      // Обновление статистики пользователя
-      function updateUserStatsUI(stats) {
-        document.getElementById('completedOrders').textContent = stats.completed_orders || 0;
-        document.getElementById('earnedAmount').textContent = `${stats.earned_amount || 0} TON`;
-        document.getElementById('templatesSold').textContent = stats.templates_sold || 0;
-        document.getElementById('userRating').textContent = stats.rating ? stats.rating.toFixed(1) : 0;
-      }
-
-      // Обновление рейтинга
-      function updateRatingUI(rating, reviewsCount) {
-        const starsContainer = document.getElementById('ratingStars');
-        starsContainer.innerHTML = '';
-        
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 >= 0.5;
-        
-        // Добавляем полные звезды
-        for (let i = 0; i < fullStars; i++) {
-          const star = document.createElement('ion-icon');
-          star.setAttribute('name', 'star');
-          starsContainer.appendChild(star);
-        }
-        
-        // Добавляем половину звезды если нужно
-        if (hasHalfStar) {
-          const halfStar = document.createElement('ion-icon');
-          halfStar.setAttribute('name', 'star-half');
-          starsContainer.appendChild(halfStar);
-        }
-        
-        // Добавляем пустые звезды
-        const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-        for (let i = 0; i < emptyStars; i++) {
-          const emptyStar = document.createElement('ion-icon');
-          emptyStar.setAttribute('name', 'star-outline');
-          starsContainer.appendChild(emptyStar);
-        }
-        
-        document.getElementById('ratingText').textContent = 
-          `${rating.toFixed(1)} (${reviewsCount} ${getReviewWord(reviewsCount)})`;
-      }
-
-      // Склонение слова "отзыв"
-      function getReviewWord(count) {
-        if (count % 100 >= 11 && count % 100 <= 14) {
-          return 'отзывов';
-        }
-        switch (count % 10) {
-          case 1: return 'отзыв';
-          case 2:
-          case 3:
-          case 4: return 'отзыва';
-          default: return 'отзывов';
-        }
-      }
-
-      // Обновление UI кошелька
-      function updateWalletUI(wallet) {
-        document.getElementById('walletAddress').textContent = wallet.address;
-        document.getElementById('walletBalance').textContent = `${wallet.balance} ${wallet.currency}`;
-        document.getElementById('connectWalletBtn').classList.add('hidden');
-        document.getElementById('walletInfo').classList.remove('hidden');
-        document.getElementById('topUpBalanceBtn').classList.remove('hidden');
-      }
-
-      // Обновление UI роли
-      function updateRoleUI() {
-        document.getElementById('addTemplateCard').classList.toggle('hidden', state.currentRole !== 'developer');
-        document.getElementById('customerRequests').classList.toggle('hidden', state.currentRole !== 'customer');
-        document.getElementById('developerRequests').classList.toggle('hidden', state.currentRole === 'customer');
-        
-        // Перезагружаем заявки при смене роли
-        loadRequests();
-      }
-
-      // Загрузка начальных данных
-      async function loadInitialData() {
-        showLoading('Загрузка данных...');
-        try {
-          await Promise.all([
-            loadArticles(),
-            loadTemplates(),
-            loadRequests(),
-            loadNotifications(),
-            loadHistory()
-          ]);
-        } catch (error) {
-          console.error('Error loading initial data:', error);
-          showToast('Ошибка загрузки данных', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Загрузка статей
-      async function loadArticles() {
-        const cacheDuration = 5 * 60 * 1000; // 5 минут кеширования
-        const now = new Date().getTime();
-        
-        // Используем кеш если он есть и не устарел
-        if (state.articlesCache && state.articlesCacheTimestamp && 
-            now - state.articlesCacheTimestamp < cacheDuration) {
-          state.articles = state.articlesCache;
-          renderArticles();
-          return;
-        }
-        
-        try {
-          const fetchArticles = async () => 
-            await supabaseClient
-              .from('articles')
-              .select('*')
-              .order('created_at', { ascending: false });
-              
-          const { data, error } = await executeWithRetry(fetchArticles, 2, 500);
-          
-          if (error) throw error;
-          
-          if (data) {
-            state.articles = data;
-            state.articlesCache = data;
-            state.articlesCacheTimestamp = new Date().getTime();
-            renderArticles();
-          }
-        } catch (error) {
-          console.error('Error loading articles:', error);
-          showToast('Ошибка загрузки статей', 'error');
-        }
-      }
-
-      // Отображение статей
-      function renderArticles() {
-        const articlesList = document.getElementById('articlesList');
-        articlesList.innerHTML = '';
-        
-        if (state.articles.length === 0) {
-          articlesList.innerHTML = `
-            <div class="text-center py-8 text-gray-500">
-              <ion-icon name="document-text-outline" class="text-3xl mb-2"></ion-icon>
-              <p>Статьи не найдены</p>
-            </div>
-          `;
-          return;
-        }
-        
-        state.articles.forEach(article => {
-          const articleEl = document.createElement('div');
-          articleEl.className = 'flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 smooth-transition';
-          articleEl.onclick = () => openArticle(article.id);
-          
-          articleEl.innerHTML = `
-            <div class="flex items-start">
-              <div class="bg-blue-100 p-2 rounded-lg mr-3">
-                <ion-icon name="document-text-outline" class="text-blue-600 text-xl"></ion-icon>
-              </div>
-              <div>
-                <div class="font-medium">${article.title}</div>
-                <div class="text-xs text-gray-500 mt-1">${article.description}</div>
-                <div class="flex items-center mt-2 text-xs text-gray-400">
-                  <ion-icon name="time-outline" class="mr-1"></ion-icon>
-                  <span>${article.reading_time || 5} мин чтения</span>
-                </div>
-              </div>
-            </div>
-            <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>
-          `;
-          
-          articlesList.appendChild(articleEl);
-        });
-      }
-
-      // Загрузка шаблонов
-      async function loadTemplates(filters = {}) {
-        try {
-          let query = supabaseClient
-            .from('templates')
-            .select('*')
-            .eq('status', 'approved')
-            .order('created_at', { ascending: false });
-          
-          // Применяем фильтры
-          if (filters.category && filters.category !== 'all') {
-            query = query.eq('category', filters.category);
-          }
-          
-          if (filters.price && filters.price !== 'all') {
-            const [min, max] = filters.price.split('-');
-            if (max) {
-              query = query.gte('price', parseFloat(min)).lte('price', parseFloat(max));
-            } else {
-              query = query.gte('price', parseFloat(min.replace('+', '')));
-            }
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          if (data) {
-            state.templates = data;
-            renderTemplates();
-          }
-        } catch (error) {
-          console.error('Error loading templates:', error);
-          showToast('Ошибка загрузки шаблонов', 'error');
-        }
-      }
-
-      // Отображение шаблонов
-      function renderTemplates() {
-        const templatesList = document.getElementById('templatesList');
-        templatesList.innerHTML = '';
-        
-        if (state.templates.length === 0) {
-          document.getElementById('noTemplatesMessage').classList.remove('hidden');
-          return;
-        }
-        
-        document.getElementById('noTemplatesMessage').classList.add('hidden');
-        
-        state.templates.forEach(template => {
-          const templateEl = document.createElement('div');
-          templateEl.className = 'relative border rounded-lg p-4 hover:shadow-md smooth-transition';
-          
-          templateEl.innerHTML = `
-            <div class="flex items-start">
-              <div class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                <ion-icon name="cube-outline" class="text-purple-600 text-2xl"></ion-icon>
-              </div>
-              <div class="flex-1">
-                <div class="font-medium">${template.title}</div>
-                <div class="text-sm text-gray-500 mt-1">${template.description}</div>
-                ${template.rating > 0 ? `
-                  <div class="flex items-center mt-2">
-                    <div class="flex text-yellow-400 text-sm">
-                      ${renderStarsHTML(template.rating)}
-                    </div>
-                    <span class="text-xs text-gray-500 ml-1">${template.rating.toFixed(1)} (${template.reviews_count})</span>
-                  </div>
-                ` : ''}
-              </div>
-            </div>
-            <div class="flex justify-between items-center mt-3 pt-3 border-t">
-              <div>
-                <div class="text-sm font-semibold text-gray-700">${template.price} TON</div>
-                <div class="text-xs text-gray-500">${template.sales_count} продаж</div>
-              </div>
-              <button class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg smooth-transition">
-                Купить
-              </button>
-            </div>
-          `;
-          
-          templatesList.appendChild(templateEl);
-        });
-      }
-
-      // Генерация HTML для звезд рейтинга
-      function renderStarsHTML(rating) {
-        let stars = '';
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 >= 0.5;
-        
-        for (let i = 0; i < fullStars; i++) {
-          stars += '<ion-icon name="star"></ion-icon>';
-        }
-        
-        if (hasHalfStar) {
-          stars += '<ion-icon name="star-half"></ion-icon>';
-        }
-        
-        const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-        for (let i = 0; i < emptyStars; i++) {
-          stars += '<ion-icon name="star-outline"></ion-icon>';
-        }
-        
-        return stars;
-      }
-
-      // Загрузка заявок
-      async function loadRequests(filters = {}) {
-        if (state.currentRole === 'customer') {
-          await loadCustomerRequests(filters);
-        } else {
-          await loadDeveloperRequests(filters);
-        }
-      }
-
-      // Загрузка заявок для заказчика
-      async function loadCustomerRequests(filters = {}) {
-        if (!state.currentUser) return;
-        
-        try {
-          let query = supabaseClient
-            .from('requests')
-            .select('*')
-            .eq('customer_id', state.currentUser.id)
-            .order('created_at', { ascending: false });
-          
-          if (filters.status && filters.status !== 'all') {
-            query = query.eq('status', filters.status);
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          if (data) {
-            state.requests = data;
-            renderCustomerRequests();
-          }
-        } catch (error) {
-          console.error('Error loading customer requests:', error);
-          showToast('Ошибка загрузки заявок', 'error');
-        }
-      }
-
-      // Отображение заявок для заказчика
-      function renderCustomerRequests() {
-        const requestsList = document.getElementById('customerRequestsList');
-        requestsList.innerHTML = '';
-        
-        if (state.requests.length === 0) {
-          document.getElementById('noCustomerRequests').classList.remove('hidden');
-          return;
-        }
-        
-        document.getElementById('noCustomerRequests').classList.add('hidden');
-        
-        state.requests.forEach(request => {
-          const requestEl = document.createElement('div');
-          requestEl.className = 'border rounded-lg p-4 hover:shadow-md smooth-transition cursor-pointer';
-          requestEl.onclick = () => openRequestChat(request.id);
-          
-          let statusBadge = '';
-          if (request.status === 'open') {
-            statusBadge = 'bg-orange-100 text-orange-800';
-          } else if (request.status === 'in_progress') {
-            statusBadge = 'bg-blue-100 text-blue-800';
-          } else if (request.status === 'completed') {
-            statusBadge = 'bg-green-100 text-green-800';
-          } else if (request.status === 'cancelled') {
-            statusBadge = 'bg-gray-100 text-gray-800';
-          }
-          
-          requestEl.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div>
-                <div class="font-medium">${request.title}</div>
-                <div class="text-sm text-gray-500 mt-1">Бюджет: ${request.budget} TON</div>
-              </div>
-              <div class="${statusBadge} text-xs px-2 py-1 rounded-full">${getStatusText(request.status)}</div>
-            </div>
-            ${request.developer_id ? `
-              <div class="flex items-center mt-3 pt-3 border-t">
-                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                  <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
-                </div>
-                <div class="text-sm text-gray-700">Исполнитель: ${request.developer_id}</div>
-              </div>
-            ` : `
-              <div class="flex items-center mt-3 pt-3 border-t">
-                <div class="text-sm text-gray-500">${request.responses_count || 0} откликов</div>
-              </div>
-            `}
-            <div class="flex items-center mt-2 text-sm text-gray-500">
-              <ion-icon name="time-outline" class="mr-1"></ion-icon>
-              <span>Обновлено ${formatDate(request.updated_at)}</span>
-            </div>
-          `;
-          
-          requestsList.appendChild(requestEl);
-        });
-      }
-
-      // Загрузка заявок для разработчика
-      async function loadDeveloperRequests(filters = {}) {
-        try {
-          let query = supabaseClient
-            .from('requests')
-            .select('*, customer:users(*)')
-            .eq('status', 'open')
-            .order('created_at', { ascending: false });
-          
-          if (filters.budget && filters.budget !== 'all') {
-            const [min, max] = filters.budget.split('-');
-            if (max) {
-              query = query.gte('budget', parseFloat(min)).lte('budget', parseFloat(max));
-            } else {
-              query = query.gte('budget', parseFloat(min.replace('+', '')));
-            }
-          }
-          
-          if (filters.deadline && filters.deadline !== 'all') {
-            const [min, max] = filters.deadline.split('-');
-            if (max) {
-              query = query.gte('deadline', parseInt(min)).lte('deadline', parseInt(max));
-            } else {
-              query = query.gte('deadline', parseInt(min.replace('+', '')));
-            }
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          if (data) {
-            state.requests = data;
-            renderDeveloperRequests();
-          }
-        } catch (error) {
-          console.error('Error loading developer requests:', error);
-          showToast('Ошибка загрузки заявок', 'error');
-        }
-      }
-
-      // Отображение заявок для разработчика
-      function renderDeveloperRequests() {
-        const requestsList = document.getElementById('developerRequestsList');
-        requestsList.innerHTML = '';
-        
-        if (state.requests.length === 0) {
-          document.getElementById('noDeveloperRequests').classList.remove('hidden');
-          return;
-        }
-        
-        document.getElementById('noDeveloperRequests').classList.add('hidden');
-        
-        state.requests.forEach(request => {
-          const requestEl = document.createElement('div');
-          requestEl.className = 'border rounded-lg p-4 hover:shadow-md smooth-transition cursor-pointer';
-          requestEl.onclick = () => openRequestChat(request.id);
-          
-          const customer = request.customer;
-          
-          requestEl.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div>
-                <div class="font-medium">${request.title}</div>
-                <div class="text-sm text-gray-500 mt-1">Бюджет: ${request.budget} TON</div>
-              </div>
-              <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">${getStatusText(request.status)}</div>
-            </div>
-            <div class="flex items-center mt-3 pt-3 border-t">
-              <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
-              </div>
-              <div class="text-sm text-gray-700">${customer.first_name} ${customer.last_name || ''}</div>
-            </div>
-            <div class="flex items-center mt-2 text-sm text-gray-500">
-              <ion-icon name="time-outline" class="mr-1"></ion-icon>
-              <span>Опубликовано ${formatDate(request.created_at)}</span>
-            </div>
-            <button class="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg smooth-transition">
-              Откликнуться
-            </button>
-          `;
-          
-          // Добавляем обработчик для кнопки отклика
-          const respondBtn = requestEl.querySelector('button');
-          respondBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            respondToRequest(request.id);
-          });
-          
-          requestsList.appendChild(requestEl);
-        });
-      }
-
-      // Получение текста статуса
-      function getStatusText(status) {
-        const statusTexts = {
-          open: 'Открыта',
-          in_progress: 'В работе',
-          completed: 'Завершена',
-          cancelled: 'Отменена'
-        };
-        return statusTexts[status] || status;
-      }
-
-      // Форматирование даты
-      function formatDate(dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now - date;
-        const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) {
-          return 'сегодня';
-        } else if (diffDays === 1) {
-          return 'вчера';
-        } else if (diffDays < 7) {
-          return `${diffDays} дня назад`;
-        } else {
-          return date.toLocaleDateString('ru-RU');
-        }
-      }
-
-      // Загрузка уведомлений
-      async function loadNotifications() {
-        if (!state.currentUser) return;
-        
-        try {
-          const { data, error } = await supabaseClient
-            .from('notifications')
-            .select('*')
-            .eq('user_id', state.currentUser.id)
-            .eq('is_read', false)
-            .order('created_at', { ascending: false });
-            
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            document.getElementById('notifDot').classList.remove('hidden');
-            renderNotifications(data);
-          }
-        } catch (error) {
-          console.error('Error loading notifications:', error);
-        }
-      }
-
-      // Отображение уведомлений
-      function renderNotifications(notifications) {
-        const notificationsList = document.getElementById('notificationsList');
-        notificationsList.innerHTML = '';
-        
-        notifications.forEach(notification => {
-          const notificationEl = document.createElement('div');
-          notificationEl.className = 'flex items-start p-2 rounded-lg hover:bg-gray-50 smooth-transition';
-          
-          let iconName = 'information-circle-outline';
-          let iconColor = 'blue';
-          
-          if (notification.type === 'request') {
-            iconName = 'chatbubble-ellipses-outline';
-            iconColor = 'blue';
-          } else if (notification.type === 'template') {
-            iconName = 'checkmark-circle-outline';
-            iconColor = 'green';
-          } else if (notification.type === 'payment') {
-            iconName = 'cash-outline';
-            iconColor = 'green';
-          }
-          
-          notificationEl.innerHTML = `
-            <ion-icon name="${iconName}" class="text-${iconColor}-500 text-lg mr-2 mt-0.5 flex-shrink-0"></ion-icon>
-            <div class="text-sm">${notification.message}</div>
-          `;
-          
-          notificationsList.appendChild(notificationEl);
-        });
-      }
-
-      // Загрузка истории операций
-      async function loadHistory() {
-        if (!state.currentUser) return;
-        
-        try {
-          const { data, error } = await supabaseClient
-            .from('transactions')
-            .select('*')
-            .eq('user_id', state.currentUser.id)
-            .order('created_at', { ascending: false })
-            .range(0, state.historyPerPage - 1);
-            
-          if (error) throw error;
-          
-          if (data) {
-            state.historyItems = data;
-            renderHistory();
-          }
-        } catch (error) {
-          console.error('Error loading history:', error);
-          showToast('Ошибка загрузки истории', 'error');
-        }
-      }
-
-      // Загрузка дополнительной истории
-      async function loadMoreHistory() {
-        if (!state.currentUser) return;
-        
-        showLoading('Загрузка дополнительных записей...');
-        
-        try {
-          const nextPage = state.historyPage + 1;
-          const start = (nextPage - 1) * state.historyPerPage;
-          const end = nextPage * state.historyPerPage - 1;
-          
-          const { data, error } = await supabaseClient
-            .from('transactions')
-            .select('*')
-            .eq('user_id', state.currentUser.id)
-            .order('created_at', { ascending: false })
-            .range(start, end);
-            
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            state.historyItems = [...state.historyItems, ...data];
-            state.historyPage = nextPage;
-            renderHistory();
-          } else {
-            document.getElementById('loadMoreHistory').classList.add('hidden');
-          }
-        } catch (error) {
-          console.error('Error loading more history:', error);
-          showToast('Ошибка загрузки истории', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Отображение истории операций
-      function renderHistory() {
-        const historyList = document.getElementById('historyList');
-        historyList.innerHTML = '';
-        
-        state.historyItems.forEach(item => {
-          const historyItem = document.createElement('li');
-          historyItem.className = 'flex justify-between items-start';
-          
-          let iconName = 'cash-outline';
-          let iconColor = 'blue';
-          
-          if (item.type === 'purchase') {
-            iconName = 'pricetag-outline';
-            iconColor = 'purple';
-          } else if (item.type === 'sale') {
-            iconName = 'cash-outline';
-            iconColor = 'green';
-          } else if (item.type === 'transfer') {
-            iconName = 'swap-horizontal-outline';
-            iconColor = 'blue';
-          } else if (item.type === 'withdrawal') {
-            iconName = 'arrow-down-outline';
-            iconColor = 'red';
-          } else if (item.type === 'deposit') {
-            iconName = 'arrow-up-outline';
-            iconColor = 'green';
-          }
-          
-          const amountEl = item.amount > 0 ? 
-            `<div class="text-green-500 font-medium">+${item.amount} ${item.currency}</div>` : 
-            `<div class="text-red-500 font-medium">${item.amount} ${item.currency}</div>`;
-          
-          historyItem.innerHTML = `
-            <div class="flex items-start">
-              <div class="bg-${iconColor}-100 p-1 rounded mr-2">
-                <ion-icon name="${iconName}" class="text-${iconColor}-600"></ion-icon>
-              </div>
-              <div>
-                <div>${item.description}</div>
-                <div class="text-xs text-gray-400">${formatDate(item.created_at)}</div>
-              </div>
-            </div>
-            ${amountEl}
-          `;
-          
-          historyList.appendChild(historyItem);
-        });
-        
-        if (state.historyItems.length >= state.historyPerPage) {
-          document.getElementById('loadMoreHistory').classList.remove('hidden');
-        }
-      }
-
-      // Открытие статьи
-      async function openArticle(articleId) {
-        showLoading('Загрузка статьи...');
-        
-        try {
-          const { data, error } = await supabaseClient
-            .from('articles')
-            .select('*')
-            .eq('id', articleId)
-            .single();
-            
-          if (error) throw error;
-          
-          if (data) {
-            state.currentArticleId = articleId;
-            showToast(`Открыта статья: ${data.title}`, 'info');
-            // Здесь можно реализовать открытие полной статьи
-          }
-        } catch (error) {
-          console.error('Error opening article:', error);
-          showToast('Ошибка загрузки статьи', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Открытие чата заявки
-      async function openRequestChat(requestId) {
-        showLoading('Загрузка чата...');
-        
-        try {
-          // Загружаем данные заявки
-          const { data: requestData, error: requestError } = await supabaseClient
-            .from('requests')
-            .select('*, customer:users(*), developer:users(*)')
-            .eq('id', requestId)
-            .single();
-            
-          if (requestError) throw requestError;
-          
-          if (!requestData) {
-            throw new Error('Заявка не найдена');
-          }
-          
-          // Проверяем доступ к чату
-          if (
-            state.currentUser.id !== requestData.customer_id && 
-            state.currentUser.id !== requestData.developer_id
-          ) {
-            throw new Error('Нет доступа к этому чату');
-          }
-          
-          // Загружаем сообщения
-          const { data: messages, error: messagesError } = await supabaseClient
-            .from('chat_messages')
-            .select('*, sender:users(*)')
-            .eq('request_id', requestId)
-            .order('created_at', { ascending: true });
-            
-          if (messagesError) throw messagesError;
-          
-          // Обновляем состояние
-          state.currentRequestId = requestId;
-          state.chatMessages = messages || [];
-          
-          // Рендерим чат
-          renderChat(requestData);
-          
-          // Подписываемся на новые сообщения
-          setupChatSubscription(requestId);
-          
-        } catch (error) {
-          console.error('Error opening chat:', error);
-          showToast(`Ошибка: ${error.message}`, 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Отображение чата
-      function renderChat(request) {
-        // Устанавливаем заголовок чата
-        document.getElementById('chatRequestTitle').textContent = request.title;
-        
-        // Настраиваем кнопку действия в зависимости от роли и статуса
-        const actionBtn = document.getElementById('chatRequestActionBtn');
-        actionBtn.classList.add('hidden');
-        
-        if (state.currentRole === 'customer') {
-          if (request.status === 'in_progress') {
-            actionBtn.textContent = 'Завершить заказ';
-            actionBtn.onclick = () => completeRequest(request.id);
-            actionBtn.classList.remove('hidden');
-          }
-        } else if (state.currentRole === 'developer') {
-          if (request.status === 'open') {
-            actionBtn.textContent = 'Откликнуться';
-            actionBtn.onclick = () => respondToRequest(request.id);
-            actionBtn.classList.remove('hidden');
-          }
-        }
-        
-        // Рендерим сообщения
-        const chatMessages = document.getElementById('chatMessages');
-        chatMessages.innerHTML = '';
-        
-        state.chatMessages.forEach(msg => {
-          const isCurrentUser = msg.sender_id === state.currentUser.id;
-          const bubble = document.createElement('div');
-          bubble.className = 'flex ' + (isCurrentUser ? 'justify-end' : 'justify-start');
-          
-          const bubbleInner = document.createElement('div');
-          bubbleInner.className = 'max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ' + 
-            (isCurrentUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none');
-          
-          if (!isCurrentUser) {
-            const senderName = document.createElement('div');
-            senderName.className = 'text-xs font-medium mb-1';
-            senderName.textContent = msg.sender?.first_name || 'Аноним';
-            bubbleInner.appendChild(senderName);
-          }
-          
-          const messageContent = document.createElement('div');
-          messageContent.textContent = msg.message;
-          bubbleInner.appendChild(messageContent);
-          
-          const timestamp = document.createElement('div');
-          timestamp.className = 'text-xs mt-1 text-right ' + (isCurrentUser ? 'text-blue-100' : 'text-gray-500');
-          timestamp.textContent = formatTime(msg.created_at);
-          bubbleInner.appendChild(timestamp);
-          
-          bubble.appendChild(bubbleInner);
-          chatMessages.appendChild(bubble);
-        });
-        
-        // Прокручиваем вниз
-        setTimeout(() => {
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 10);
-        
-        // Показываем чат
-        document.getElementById('chatOverlay').classList.remove('hidden');
-      }
-
-      // Форматирование времени
-      function formatTime(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-      }
-
-      // Настройка подписки на новые сообщения
-      function setupChatSubscription(requestId) {
-        // Отписываемся от предыдущей подписки если есть
-        if (state.chatSubscription) {
-          supabaseClient.removeSubscription(state.chatSubscription);
-        }
-        
-        // Подписываемся на новые сообщения
-        state.chatSubscription = supabaseClient
-          .from(`chat_messages:request_id=eq.${requestId}`)
-          .on('INSERT', payload => {
-            // Добавляем новое сообщение в состояние
-            state.chatMessages.push(payload.new);
-            
-            // Рендерим новое сообщение
-            const chatMessages = document.getElementById('chatMessages');
-            const isCurrentUser = payload.new.sender_id === state.currentUser.id;
-            
-            const bubble = document.createElement('div');
-            bubble.className = 'flex ' + (isCurrentUser ? 'justify-end' : 'justify-start');
-            
-            const bubbleInner = document.createElement('div');
-            bubbleInner.className = 'max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ' + 
-              (isCurrentUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none');
-            
-            if (!isCurrentUser) {
-              // Для новых сообщений от других пользователей загружаем данные отправителя
-              supabaseClient
-                .from('users')
-                .select('*')
-                .eq('id', payload.new.sender_id)
-                .single()
-                .then(({ data: sender }) => {
-                  const senderName = document.createElement('div');
-                  senderName.className = 'text-xs font-medium mb-1';
-                  senderName.textContent = sender?.first_name || 'Аноним';
-                  bubbleInner.prepend(senderName);
-                });
-            }
-            
-            const messageContent = document.createElement('div');
-            messageContent.textContent = payload.new.message;
-            bubbleInner.appendChild(messageContent);
-            
-            const timestamp = document.createElement('div');
-            timestamp.className = 'text-xs mt-1 text-right ' + (isCurrentUser ? 'text-blue-100' : 'text-gray-500');
-            timestamp.textContent = formatTime(payload.new.created_at);
-            bubbleInner.appendChild(timestamp);
-            
-            bubble.appendChild(bubbleInner);
-            chatMessages.appendChild(bubble);
-            
-            // Прокручиваем вниз
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-          })
-          .subscribe();
-      }
-
-      // Отклик на заявку
-      async function respondToRequest(requestId) {
-        showLoading('Отправка отклика...');
-        
-        try {
-          const request = state.requests.find(r => r.id === requestId);
-          if (!request) throw new Error('Заявка не найдена');
-          
-          const { data, error } = await supabaseClient
-            .from('request_responses')
-            .insert([{ 
-              request_id: requestId, 
-              developer_id: state.currentUser.id, 
-              message: 'Я готов выполнить эту работу', 
-              price: request.budget 
-            }]);
-            
-          if (error) throw error;
-          
-          if (data) {
-            showToast('Ваш отклик отправлен', 'success');
-            await loadRequests();
-            closeChat();
-          }
-        } catch (error) {
-          console.error('Error responding to request:', error);
-          showToast('Ошибка отправки отклика', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Завершение заявки
-      async function completeRequest(requestId) {
-        showConfirmation(
-          'Завершение заказа',
-          'Вы уверены, что хотите завершить этот заказ? После подтверждения средства будут переведены разработчику.',
-          async () => {
-            showLoading('Завершение заказа...');
-            
-            try {
-              // В реальном приложении здесь должна быть транзакция перевода средств
-              const { error } = await supabaseClient
-                .from('requests')
-                .update({ status: 'completed' })
-                .eq('id', requestId);
-                
-              if (error) throw error;
-              
-              showToast('Заказ успешно завершен', 'success');
-              await loadRequests();
-              closeChat();
-            } catch (error) {
-              console.error('Error completing request:', error);
-              showToast('Ошибка завершения заказа', 'error');
-            } finally {
-              hideLoading();
-            }
-          }
-        );
-      }
-
-      // Закрытие чата
-      function closeChat() {
-        // Отписываемся от подписки
-        if (state.chatSubscription) {
-          supabaseClient.removeSubscription(state.chatSubscription);
-          state.chatSubscription = null;
-        }
-        
-        document.getElementById('chatOverlay').classList.add('hidden');
-        state.currentRequestId = null;
-        state.chatMessages = [];
-      }
-
-      // Отправка сообщения
-      async function sendMessage() {
-        const text = document.getElementById('chatInput').value.trim();
-        if (!text || !state.currentRequestId || !state.currentUser) return;
-        
-        showLoading('Отправка сообщения...');
-        
-        try {
-          const { error } = await supabaseClient
-            .from('chat_messages')
-            .insert([{
-              request_id: state.currentRequestId,
-              sender_id: state.currentUser.id,
-              message: text
-            }]);
-            
-          if (error) throw error;
-          
-          // Очищаем поле ввода
-          document.getElementById('chatInput').value = '';
-        } catch (error) {
-          console.error('Error sending message:', error);
-          showToast('Ошибка отправки сообщения', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Подключение кошелька
-      async function connectWallet() {
-        showConfirmation(
-          'Подключение кошелька',
-          'Вы хотите подключить TON кошелек к вашему аккаунту?',
-          async () => {
-            showLoading('Подключение кошелька...');
-            
-            try {
-              // В реальном приложении здесь должна быть интеграция с TON Wallet
-              // Для примера создаем фейковый кошелек
-              const dummyAddress = 'EQC' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-              const initialBalance = 100;
-              
-              const { data, error } = await supabaseClient
-                .from('wallets')
-                .upsert({
-                  user_id: state.currentUser.id,
-                  address: dummyAddress,
-                  balance: initialBalance,
-                  currency: 'TON',
-                  network: 'mainnet'
-                }, { onConflict: 'user_id' });
-                
-              if (error) throw error;
-              
-              // Обновляем состояние
-              state.walletConnected = true;
-              updateWalletUI({
-                address: dummyAddress,
-                balance: initialBalance,
-                currency: 'TON'
-              });
-              
-              // Добавляем запись в историю
-              await supabaseClient
-                .from('transactions')
-                .insert([{
-                  user_id: state.currentUser.id,
-                  amount: initialBalance,
-                  currency: 'TON',
-                  type: 'deposit',
-                  description: 'Начальный баланс',
-                  status: 'completed'
-                }]);
-                
-              showToast('TON кошелек успешно подключен', 'success');
-              
-              // Перезагружаем историю
-              await loadHistory();
-              
-            } catch (error) {
-              console.error('Error connecting wallet:', error);
-              showToast('Ошибка подключения кошелька', 'error');
-            } finally {
-              hideLoading();
-            }
-          }
-        );
-      }
-
-      // Отключение кошелька
-      async function disconnectWallet() {
-        showConfirmation(
-          'Отключение кошелька',
-          'Вы уверены, что хотите отключить TON кошелек?',
-          async () => {
-            showLoading('Отключение кошелька...');
-            
-            try {
-              document.getElementById('connectWalletBtn').classList.remove('hidden');
-              document.getElementById('walletInfo').classList.add('hidden');
-              document.getElementById('topUpBalanceBtn').classList.add('hidden');
-              state.walletConnected = false;
-              showToast('TON кошелек отключен', 'info');
-            } catch (error) {
-              console.error('Error disconnecting wallet:', error);
-              showToast('Ошибка отключения кошелька', 'error');
-            } finally {
-              hideLoading();
-            }
-          }
-        );
-      }
-
-      // Показать модальное окно создания заявки
-      function showAddRequestModal() {
-        document.getElementById('requestTitle').value = '';
-        document.getElementById('requestDescription').value = '';
-        document.getElementById('requestBudget').value = '';
-        document.getElementById('requestDeadline').value = '7';
-        document.getElementById('customDeadline').value = '';
-        document.getElementById('customDeadlineContainer').classList.add('hidden');
-        document.getElementById('requestFiles').value = '';
-        document.getElementById('requestFilesNames').classList.add('hidden');
-        document.getElementById('requestFilesNames').textContent = '';
-        state.selectedFiles = [];
-        
-        // Сбрасываем ошибки
-        document.getElementById('requestTitleError').classList.add('hidden');
-        document.getElementById('requestDescError').classList.add('hidden');
-        document.getElementById('requestBudgetError').classList.add('hidden');
-        document.getElementById('customDeadlineError').classList.add('hidden');
-        document.getElementById('requestFilesError').classList.add('hidden');
-        
-        document.getElementById('addRequestModal').classList.remove('hidden');
-      }
-
-      // Закрыть модальное окно создания заявки
-      function closeAddRequestModal() {
-        document.getElementById('addRequestModal').classList.add('hidden');
-      }
-
-      // Обработка загрузки файлов для заявки
-      function handleRequestFileUpload(event) {
-        const files = event.target.files;
-        if (files.length > 3) {
-          document.getElementById('requestFilesError').classList.remove('hidden');
-          document.getElementById('requestFilesError').textContent = 'Можно загрузить не более 3 файлов';
-          return;
-        }
-        
-        state.selectedFiles = Array.from(files);
-        const filesNames = state.selectedFiles.map(file => file.name).join(', ');
-        
-        if (filesNames) {
-          document.getElementById('requestFilesNames').textContent = filesNames;
-          document.getElementById('requestFilesNames').classList.remove('hidden');
-          document.getElementById('requestFilesError').classList.add('hidden');
-        } else {
-          document.getElementById('requestFilesNames').classList.add('hidden');
-        }
-      }
-
-      // Создание новой заявки
-      async function submitNewRequest() {
-        const title = document.getElementById('requestTitle').value.trim();
-        const description = document.getElementById('requestDescription').value.trim();
-        const budget = parseFloat(document.getElementById('requestBudget').value) || 0;
-        let deadline = document.getElementById('requestDeadline').value;
-        
-        if (deadline === 'custom') {
-          deadline = document.getElementById('customDeadline').value;
-        }
-        
-        // Валидация
-        let isValid = true;
-        
-        if (!title) {
-          document.getElementById('requestTitleError').classList.remove('hidden');
-          isValid = false;
-        } else {
-          document.getElementById('requestTitleError').classList.add('hidden');
-        }
-        
-        if (!description) {
-          document.getElementById('requestDescError').classList.remove('hidden');
-          isValid = false;
-        } else {
-          document.getElementById('requestDescError').classList.add('hidden');
-        }
-        
-        if (!budget || budget <= 0) {
-          document.getElementById('requestBudgetError').classList.remove('hidden');
-          isValid = false;
-        } else {
-          document.getElementById('requestBudgetError').classList.add('hidden');
-        }
-        
-        if (deadline === 'custom') {
-          const customDeadline = document.getElementById('customDeadline').value;
-          if (!customDeadline || customDeadline <= 0) {
-            document.getElementById('customDeadlineError').classList.remove('hidden');
-            isValid = false;
-          } else {
-            document.getElementById('customDeadlineError').classList.add('hidden');
-          }
-        }
-        
-        if (!isValid) {
-          showToast('Пожалуйста, заполните все обязательные поля', 'error');
-          return;
-        }
-        
-        showLoading('Создание заявки...');
-        
-        try {
-          const { data, error } = await supabaseClient
-            .from('requests')
-            .insert([{ 
-              customer_id: state.currentUser.id, 
-              title, 
-              description, 
-              budget, 
-              deadline, 
-              status: 'open' 
-            }])
-            .select();
-            
-          if (error) throw error;
-          
-          if (data) {
-            showToast('Заявка успешно создана', 'success');
-            closeAddRequestModal();
-            await loadRequests();
-          }
-        } catch (error) {
-          console.error('Error creating request:', error);
-          showToast('Ошибка при создании заявки', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Показать модальное окно добавления шаблона
-      function showAddTemplateModal() {
-        document.getElementById('templateTitle').value = '';
-        document.getElementById('templateDescription').value = '';
-        document.getElementById('templatePrice').value = '';
-        document.getElementById('templateCategory').value = 'UI';
-        document.getElementById('templateFile').value = '';
-        document.getElementById('templateFileName').classList.add('hidden');
-        document.getElementById('templateFileName').textContent = '';
-        document.getElementById('templatePreview').value = '';
-        document.getElementById('templatePreviewName').classList.add('hidden');
-        document.getElementById('templatePreviewName').textContent = '';
-        state.selectedTemplateFile = null;
-        state.selectedTemplatePreview = null;
-        
-        // Сбрасываем ошибки
-        document.getElementById('templateTitleError').classList.add('hidden');
-        document.getElementById('templateDescError').classList.add('hidden');
-        document.getElementById('templatePriceError').classList.add('hidden');
-        document.getElementById('templateFileError').classList.add('hidden');
-        
-        document.getElementById('addTemplateModal').classList.remove('hidden');
-      }
-
-      // Закрыть модальное окно добавления шаблона
-      function closeAddTemplateModal() {
-        document.getElementById('addTemplateModal').classList.add('hidden');
-      }
-
-      // Обработка загрузки файла шаблона
-      function handleTemplateFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        if (!file.name.endsWith('.zip')) {
-          document.getElementById('templateFileError').classList.remove('hidden');
-          document.getElementById('templateFileError').textContent = 'Файл должен быть в формате ZIP';
-          return;
-        }
-        
-        state.selectedTemplateFile = file;
-        document.getElementById('templateFileName').textContent = file.name;
-        document.getElementById('templateFileName').classList.remove('hidden');
-        document.getElementById('templateFileError').classList.add('hidden');
-      }
-
-      // Обработка загрузки превью шаблона
-      function handleTemplatePreviewUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        if (!file.type.startsWith('image/')) {
-          showToast('Пожалуйста, загрузите изображение', 'error');
-          return;
-        }
-        
-        state.selectedTemplatePreview = file;
-        document.getElementById('templatePreviewName').textContent = file.name;
-        document.getElementById('templatePreviewName').classList.remove('hidden');
-      }
-
-      // Отправка нового шаблона
-      async function submitNewTemplate() {
-        const title = document.getElementById('templateTitle').value.trim();
-        const description = document.getElementById('templateDescription').value.trim();
-        const price = parseFloat(document.getElementById('templatePrice').value) || 0;
-        const category = document.getElementById('templateCategory').value;
-        
-        // Валидация
-        let isValid = true;
-        
-        if (!title) {
-          document.getElementById('templateTitleError').classList.remove('hidden');
-          isValid = false;
-        } else {
-          document.getElementById('templateTitleError').classList.add('hidden');
-        }
-        
-        if (!description) {
-          document.getElementById('templateDescError').classList.remove('hidden');
-          isValid = false;
-        } else {
-          document.getElementById('templateDescError').classList.add('hidden');
-        }
-        
-        if (!price || price <= 0) {
-          document.getElementById('templatePriceError').classList.remove('hidden');
-          isValid = false;
-        } else {
-          document.getElementById('templatePriceError').classList.add('hidden');
-        }
-        
-        if (!state.selectedTemplateFile) {
-          document.getElementById('templateFileError').classList.remove('hidden');
-          document.getElementById('templateFileError').textContent = 'Пожалуйста, загрузите файл шаблона';
-          isValid = false;
-        } else {
-          document.getElementById('templateFileError').classList.add('hidden');
-        }
-        
-        if (!isValid) {
-          showToast('Пожалуйста, заполните все обязательные поля', 'error');
-          return;
-        }
-        
-        showLoading('Отправка шаблона...');
-        
-        try {
-          // В реальном приложении здесь должна быть загрузка файлов на сервер
-          const { data, error } = await supabaseClient
-            .from('templates')
-            .insert([{ 
-              developer_id: state.currentUser.id, 
-              title, 
-              description, 
-              price, 
-              category, 
-              status: 'pending' 
-            }])
-            .select();
-            
-          if (error) throw error;
-          
-          if (data) {
-            showToast('Шаблон успешно отправлен на модерацию', 'success');
-            closeAddTemplateModal();
-            await loadTemplates();
-          }
-        } catch (error) {
-          console.error('Error submitting template:', error);
-          showToast('Ошибка при отправке шаблона', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Переключение вкладок
-      function switchTab(tab) {
-        if (tab === state.currentTab) return;
-        
-        // Скрываем текущую вкладку
-        document.getElementById(`tabContent-${state.currentTab}`).classList.add('hidden');
-        
-        // Обновляем иконку и текст текущей вкладки
-        const currentTabIcon = document.getElementById(`tab-icon-${state.currentTab}`);
-        const currentTabLabel = document.querySelector(`#tab-${state.currentTab} span`);
-        
-        if (currentTabIcon && currentTabLabel) {
-          currentTabIcon.setAttribute('name', tabIcons[state.currentTab].outline);
-          currentTabIcon.classList.remove('text-blue-600');
-          currentTabIcon.classList.add('text-gray-600');
-          currentTabLabel.classList.remove('text-blue-600');
-          currentTabLabel.classList.add('text-gray-600');
-        }
-        
-        // Показываем новую вкладку
-        document.getElementById(`tabContent-${tab}`).classList.remove('hidden');
-        state.currentTab = tab;
-        
-        // Обновляем заголовок
-        document.getElementById('topBarTitle').textContent = tabTitles[tab] || '';
-        
-        // Обновляем иконку и текст новой вкладки
-        const newTabIcon = document.getElementById(`tab-icon-${tab}`);
-        const newTabLabel = document.querySelector(`#tab-${tab} span`);
-        
-        if (newTabIcon && newTabLabel) {
-          newTabIcon.setAttribute('name', tabIcons[tab].filled);
-          newTabIcon.classList.remove('text-gray-600');
-          newTabIcon.classList.add('text-blue-600');
-          newTabLabel.classList.remove('text-gray-600');
-          newTabLabel.classList.add('text-blue-600');
-        }
-        
-        // Загружаем данные для вкладки если нужно
-        if (tab === 'articles' && state.articles.length === 0) {
-          loadArticles();
-        } else if (tab === 'market' && state.templates.length === 0) {
-          loadTemplates();
-        } else if (tab === 'requests') {
-          loadRequests();
-        } else if (tab === 'profile') {
-          loadHistory();
-        }
-      }
-
-      // Переключение роли
-      async function switchRole(role) {
-        if (role === state.currentRole) return;
-        
-        showConfirmation(
-          'Смена роли',
-          `Вы хотите переключиться в режим ${role === 'developer' ? 'разработчика' : 'заказчика'}?`,
-          async () => {
-            showLoading('Смена роли...');
-            
-            try {
-              const { error } = await supabaseClient
-                .from('users')
-                .update({ role })
-                .eq('id', state.currentUser.id);
-                
-              if (error) throw error;
-              
-              state.currentRole = role;
-              updateRoleUI();
-              await loadRequests();
-              
-              showToast(
-                `Режим ${role === 'developer' ? 'разработчика' : 'заказчика'} активирован`, 
-                'success'
-              );
-            } catch (error) {
-              console.error('Error switching role:', error);
-              showToast('Ошибка при смене роли', 'error');
-            } finally {
-              hideLoading();
-            }
-          }
-        );
-      }
-
-      // Переключение уведомлений
-      function toggleNotifications() {
-        document.getElementById('notifPanel').classList.toggle('hidden');
-        
-        if (!document.getElementById('notifPanel').classList.contains('hidden')) {
-          document.getElementById('notifDot').classList.add('hidden');
-          
-          if (state.currentUser) {
-            // Помечаем уведомления как прочитанные
-            supabaseClient
-              .from('notifications')
-              .update({ is_read: true })
-              .eq('user_id', state.currentUser.id)
-              .eq('is_read', false);
-          }
-        }
-      }
-
-      // Пометить все уведомления как прочитанные
-      async function markAllAsRead() {
-        if (!state.currentUser) return;
-        
-        showLoading('Обновление уведомлений...');
-        
-        try {
-          const { error } = await supabaseClient
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('user_id', state.currentUser.id)
-            .eq('is_read', false);
-            
-          if (error) throw error;
-          
-          showToast('Все уведомления помечены как прочитанные', 'success');
-          document.getElementById('notifPanel').classList.add('hidden');
-          document.getElementById('notifDot').classList.add('hidden');
-        } catch (error) {
-          console.error('Error marking notifications as read:', error);
-          showToast('Ошибка при обновлении уведомлений', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // Инициализация темы
-      function initTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        state.theme = savedTheme ? savedTheme : 'light';
-        setTheme(state.theme);
-      }
-
-      // Установка темы
-      function setTheme(theme) {
-        state.theme = theme;
-        localStorage.setItem('theme', theme);
-        
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else if (theme === 'light') {
-          document.documentElement.classList.remove('dark');
-        } else {
-          // Системная тема
-          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-        }
-        
-        // Обновляем UI выбора темы
-        document.getElementById('themeLight').classList.toggle('border-blue-500', theme === 'light');
-        document.getElementById('themeLight').classList.toggle('bg-blue-50', theme === 'light');
-        document.getElementById('themeDark').classList.toggle('border-blue-500', theme === 'dark');
-        document.getElementById('themeDark').classList.toggle('bg-blue-50', theme === 'dark');
-        document.getElementById('themeSystem').classList.toggle('border-blue-500', theme === 'system');
-        document.getElementById('themeSystem').classList.toggle('bg-blue-50', theme === 'system');
-      }
-
-      // Инициализация языка
-      function initLanguage() {
-        const savedLanguage = localStorage.getItem('language');
-        if (savedLanguage) {
-          state.language = savedLanguage;
-          document.getElementById('languageSelect').value = savedLanguage;
-        }
-      }
-
-      // Инициализация уведомлений
-      function initNotifications() {
-        const savedNotifications = localStorage.getItem('notifications');
-        if (savedNotifications) {
-          state.notifications = JSON.parse(savedNotifications);
-          document.getElementById('notifMessages').checked = state.notifications.messages;
-          document.getElementById('notifRequests').checked = state.notifications.requests;
-          document.getElementById('notifNews').checked = state.notifications.news;
-        }
-      }
-
-      // Показать модальное окно настроек
-      function showSettingsModal() {
-        document.getElementById('settingsModal').classList.remove('hidden');
-      }
-
-      // Закрыть модальное окно настроек
-      function closeSettingsModal() {
-        document.getElementById('settingsModal').classList.add('hidden');
-      }
-
-      // Сохранить настройки
-      async function saveSettings() {
-        const language = document.getElementById('languageSelect').value;
-        const notifications = {
-          messages: document.getElementById('notifMessages').checked,
-          requests: document.getElementById('notifRequests').checked,
-          news: document.getElementById('notifNews').checked
-        };
-        
-        state.language = language;
-        state.notifications = notifications;
-        
-        localStorage.setItem('language', language);
-        localStorage.setItem('notifications', JSON.stringify(notifications));
-        
-        showToast('Настройки сохранены', 'success');
-        closeSettingsModal();
-      }
-
-      // Показать модальное окно помощи
-      function showHelpModal() {
-        document.getElementById('helpModal').classList.remove('hidden');
-      }
-
-      // Закрыть модальное окно помощи
-      function closeHelpModal() {
-        document.getElementById('helpModal').classList.add('hidden');
-      }
-
-      // Показать модальное окно "О приложении"
-      function showAboutModal() {
-        document.getElementById('aboutModal').classList.remove('hidden');
-      }
-
-      // Закрыть модальное окно "О приложении"
-      function closeAboutModal() {
-        document.getElementById('aboutModal').classList.add('hidden');
-      }
-
-      // Показать окно подтверждения
-      function showConfirmation(title, message, confirmCallback) {
-        document.getElementById('confirmationTitle').textContent = title;
-        document.getElementById('confirmationMessage').textContent = message;
-        document.getElementById('confirmationModal').classList.remove('hidden');
-        
-        const confirmBtn = document.getElementById('confirmActionBtn');
-        confirmBtn.onclick = () => {
-          document.getElementById('confirmationModal').classList.add('hidden');
-          if (confirmCallback) confirmCallback();
-        };
-      }
-
-      // Переключение фильтров шаблонов
-      function toggleTemplateFilters() {
-        document.getElementById('marketFilters').classList.toggle('hidden');
-      }
-
-      // Применить фильтры шаблонов
-      function applyTemplateFilters() {
-        const category = document.getElementById('templateCategoryFilter').value;
-        const price = document.getElementById('templatePriceFilter').value;
-        const filters = {};
-        
-        if (category !== 'all') filters.category = category;
-        if (price !== 'all') filters.price = price;
-        
-        loadTemplates(filters);
-        document.getElementById('marketFilters').classList.add('hidden');
-      }
-
-      // Сбросить фильтры шаблонов
-      function resetTemplateFilters() {
-        document.getElementById('templateCategoryFilter').value = 'all';
-        document.getElementById('templatePriceFilter').value = 'all';
-        loadTemplates();
-        document.getElementById('marketFilters').classList.add('hidden');
-      }
-
-      // Переключение фильтров заявок
-      function toggleRequestFilters() {
-        document.getElementById('requestFilters').classList.toggle('hidden');
-      }
-
-      // Применить фильтры заявок
-      function applyRequestFilters() {
-        const budget = document.getElementById('requestBudgetFilter').value;
-        const deadline = document.getElementById('requestDeadlineFilter').value;
-        const filters = {};
-        
-        if (budget !== 'all') filters.budget = budget;
-        if (deadline !== 'all') filters.deadline = deadline;
-        
-        loadRequests(filters);
-        document.getElementById('requestFilters').classList.add('hidden');
-      }
-
-      // Сбросить фильтры заявок
-      function resetRequestFilters() {
-        document.getElementById('requestBudgetFilter').value = 'all';
-        document.getElementById('requestDeadlineFilter').value = 'all';
-        loadRequests();
-        document.getElementById('requestFilters').classList.add('hidden');
-      }
-
-      // Показать загрузку
-      function showLoading(message = 'Загрузка...') {
-        document.getElementById('loadingMessage').textContent = message;
-        document.getElementById('loadingOverlay').classList.remove('hidden');
-        state.isLoading = true;
-      }
-
-      // Скрыть загрузку
-      function hideLoading() {
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        state.isLoading = false;
-      }
-
-      // Показать toast-уведомление
-      function showToast(message, type = 'info') {
-        const colors = { 
-          info: 'bg-blue-500', 
-          success: 'bg-green-500', 
-          error: 'bg-red-500', 
-          warning: 'bg-yellow-500' 
-        };
-        
-        const icons = {
-          info: 'information-circle',
-          success: 'checkmark-circle',
-          error: 'alert-circle',
-          warning: 'warning'
-        };
-        
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-16 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded-lg shadow-lg ${colors[type]} fade-in flex items-center`;
-        
-        toast.innerHTML = `
-          <ion-icon name="${icons[type]}" class="mr-2"></ion-icon>
-          <span>${message}</span>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-          toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
-          setTimeout(() => toast.remove(), 300);
-        }, 3000);
-      }
-
-      // Настройка обработчиков событий
-      function setupEventListeners() {
-        // Вкладки
-        bindEvent(document.getElementById('tab-articles'), 'click', () => switchTab('articles'));
-        bindEvent(document.getElementById('tab-market'), 'click', () => switchTab('market'));
-        bindEvent(document.getElementById('tab-requests'), 'click', () => switchTab('requests'));
-        bindEvent(document.getElementById('tab-profile'), 'click', () => switchTab('profile'));
-        
-        // Кошелек
-        bindEvent(document.getElementById('connectWalletBtn'), 'click', connectWallet);
-        bindEvent(document.getElementById('disconnectWalletBtn'), 'click', disconnectWallet);
-        bindEvent(document.getElementById('topUpBalanceBtn'), 'click', () => {
-          showToast('Функция пополнения баланса в разработке', 'info');
-        });
-        
-        // Уведомления
-        bindEvent(document.getElementById('notifIconWrapper'), 'click', toggleNotifications);
-        bindEvent(document.getElementById('markAllAsReadBtn'), 'click', markAllAsRead);
-        
-        // Заявки
-        bindEvent(document.getElementById('newRequestBtn'), 'click', showAddRequestModal);
-        bindEvent(document.getElementById('createRequestBtn'), 'click', showAddRequestModal);
-        bindEvent(document.getElementById('refreshRequestsBtn'), 'click', () => loadRequests());
-        
-        // Модальные окна заявок
-        bindEvent(document.getElementById('closeRequestModalBtn'), 'click', closeAddRequestModal);
-        bindEvent(document.getElementById('cancelRequestBtn'), 'click', closeAddRequestModal);
-        bindEvent(document.getElementById('submitRequestBtn'), 'click', submitNewRequest);
-        bindEvent(document.getElementById('requestDeadline'), 'change', function() {
-          document.getElementById('customDeadlineContainer').classList.toggle('hidden', this.value !== 'custom');
-        });
-        bindEvent(document.getElementById('fileUploadArea'), 'click', () => {
-          document.getElementById('requestFiles').click();
-        });
-        bindEvent(document.getElementById('requestFiles'), 'change', handleRequestFileUpload);
-        
-        // Шаблоны
-        bindEvent(document.getElementById('addTemplateCard'), 'click', showAddTemplateModal);
-        bindEvent(document.getElementById('filterTemplatesBtn'), 'click', toggleTemplateFilters);
-        bindEvent(document.getElementById('applyFiltersBtn'), 'click', applyTemplateFilters);
-        bindEvent(document.getElementById('resetFiltersBtn'), 'click', resetTemplateFilters);
-        bindEvent(document.getElementById('resetFiltersBtn2'), 'click', resetTemplateFilters);
-        
-        // Модальное окно шаблона
-        bindEvent(document.getElementById('closeTemplateModalBtn'), 'click', closeAddTemplateModal);
-        bindEvent(document.getElementById('cancelTemplateBtn'), 'click', closeAddTemplateModal);
-        bindEvent(document.getElementById('submitTemplateBtn'), 'click', submitNewTemplate);
-        bindEvent(document.getElementById('templateFileUpload'), 'click', () => {
-          document.getElementById('templateFile').click();
-        });
-        bindEvent(document.getElementById('templateFile'), 'change', handleTemplateFileUpload);
-        bindEvent(document.getElementById('templatePreviewUpload'), 'click', () => {
-          document.getElementById('templatePreview').click();
-        });
-        bindEvent(document.getElementById('templatePreview'), 'change', handleTemplatePreviewUpload);
-        
-        // Фильтры заявок
-        bindEvent(document.getElementById('filterRequestsBtn'), 'click', toggleRequestFilters);
-        bindEvent(document.getElementById('applyRequestFiltersBtn'), 'click', applyRequestFilters);
-        bindEvent(document.getElementById('resetRequestFiltersBtn'), 'click', resetRequestFilters);
-        
-        // Чат
-        bindEvent(document.getElementById('closeChatBtn'), 'click', closeChat);
-        bindEvent(document.getElementById('chatSendBtn'), 'click', sendMessage);
-        bindEvent(document.getElementById('chatInput'), 'keypress', (e) => {
-          if (e.key === 'Enter') sendMessage();
-        });
-        bindEvent(document.getElementById('attachFileBtn'), 'click', (e) => {
-          e.stopPropagation();
-          document.getElementById('attachmentOptions').classList.toggle('hidden');
-        });
-        
-        // Закрытие меню вложений при клике вне его
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#attachmentOptions') && !e.target.closest('#attachFileBtn')) {
-            document.getElementById('attachmentOptions').classList.add('hidden');
-          }
-        });
-        
-        // Профиль
-        bindEvent(document.getElementById('settingsBtn'), 'click', showSettingsModal);
-        bindEvent(document.getElementById('helpBtn'), 'click', showHelpModal);
-        bindEvent(document.getElementById('aboutBtn'), 'click', showAboutModal);
-        bindEvent(document.getElementById('editProfileBtn'), 'click', () => {
-          showToast('Редактирование профиля в разработке', 'info');
-        });
-        bindEvent(document.getElementById('loadMoreHistory'), 'click', loadMoreHistory);
-        
-        // Модальное окно настроек
-        bindEvent(document.getElementById('closeSettingsBtn'), 'click', closeSettingsModal);
-        bindEvent(document.getElementById('saveSettingsBtn'), 'click', saveSettings);
-        
-        // Кнопки темы
-        bindEvent(document.getElementById('themeLight'), 'click', () => setTheme('light'));
-        bindEvent(document.getElementById('themeDark'), 'click', () => setTheme('dark'));
-        bindEvent(document.getElementById('themeSystem'), 'click', () => setTheme('system'));
-        
-        // Модальное окно помощи
-        bindEvent(document.getElementById('closeHelpBtn'), 'click', closeHelpModal);
-        bindEvent(document.getElementById('closeHelpBtn2'), 'click', closeHelpModal);
-        
-        // Модальное окно "О приложении"
-        bindEvent(document.getElementById('closeAboutBtn'), 'click', closeAboutModal);
-        bindEvent(document.getElementById('closeAboutBtn2'), 'click', closeAboutModal);
-        
-        // Модальное окно подтверждения
-        bindEvent(document.getElementById('cancelConfirmBtn'), 'click', () => {
-          document.getElementById('confirmationModal').classList.add('hidden');
-        });
-        bindEvent(document.getElementById('cancelConfirmBtn2'), 'click', () => {
-          document.getElementById('confirmationModal').classList.add('hidden');
-        });
-        
-        // Поиск с debounce
-        bindEvent(document.getElementById('articleSearch'), 'input', 
-          debounce(() => {
-            const searchTerm = document.getElementById('articleSearch').value.toLowerCase();
-            if (searchTerm) {
-              const filtered = state.articles.filter(article => 
-                article.title.toLowerCase().includes(searchTerm) || 
-                article.description.toLowerCase().includes(searchTerm)
-              );
-              state.articles = filtered;
-              renderArticles();
-            } else {
-              // Если поиск очищен, показываем все статьи
-              state.articles = state.articlesCache || [];
-              renderArticles();
-            }
-          }, 300)
-        );
-        
-        bindEvent(document.getElementById('marketSearch'), 'input', 
-          debounce(() => {
-            const searchTerm = document.getElementById('marketSearch').value.toLowerCase();
-            if (searchTerm) {
-              const filtered = state.templates.filter(template => 
-                template.title.toLowerCase().includes(searchTerm) || 
-                template.description.toLowerCase().includes(searchTerm)
-              );
-              state.templates = filtered;
-              renderTemplates();
-            } else {
-              // Если поиск очищен, показываем все шаблоны
-              loadTemplates();
-            }
-          }, 300)
-        );
-        
-        bindEvent(document.getElementById('requestSearch'), 'input', 
-          debounce(() => {
-            const searchTerm = document.getElementById('requestSearch').value.toLowerCase();
-            if (searchTerm) {
-              const filtered = state.requests.filter(request => 
-                request.title.toLowerCase().includes(searchTerm) || 
-                request.description.toLowerCase().includes(searchTerm)
-              );
-              state.requests = filtered;
-              
-              if (state.currentRole === 'customer') {
-                renderCustomerRequests();
-              } else {
-                renderDeveloperRequests();
-              }
-            } else {
-              // Если поиск очищен, показываем все заявки
-              loadRequests();
-            }
-          }, 300)
-        );
-      }
-
-      // Запуск приложения
-      setupEventListeners();
-      initApp();
-    });
-  </script>
+  <!-- Нижняя навигация -->
+  <div id="bottomNav" class="fixed bottom-0 left-0 w-full h-14 border-t bg-white flex justify-around items-center z-10 shadow-sm">
+    <button id="tab-articles" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
+      <ion-icon id="tab-icon-articles" name="document-text-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
+      <span class="text-xs text-gray-600">Статьи</span>
+    </button>
+    <button id="tab-market" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
+      <ion-icon id="tab-icon-market" name="pricetag-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
+      <span class="text-xs text-gray-600">Маркет</span>
+    </button>
+    <button id="tab-requests" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
+      <ion-icon id="tab-icon-requests" name="clipboard-outline" class="text-2xl text-blue-600 mb-1"></ion-icon>
+      <span class="text-xs text-blue-600">Заявки</span>
+    </button>
+    <button id="tab-profile" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
+      <ion-icon id="tab-icon-profile" name="person-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
+      <span class="text-xs text-gray-600">Профиль</span>
+    </button>
+  </div>
+
+  <!-- Подключение главного модуля -->
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
