@@ -221,13 +221,13 @@
         </div>
       </div>
     </div>
-    <!-- Кнопки для настроек, помощи, О приложении -->
-    <div class="flex justify-around mt-4">
-      <button id="settingsBtn" class="px-4 py-2 bg-gray-200 rounded-md">Настройки</button>
-      <button id="helpBtn" class="px-4 py-2 bg-gray-200 rounded-md">Помощь</button>
-      <button id="aboutBtn" class="px-4 py-2 bg-gray-200 rounded-md">О приложении</button>
+    <div class="flex justify-center mb-4">
+      <div id="roleToggle" class="flex bg-gray-200 rounded-full p-1">
+        <button id="roleCustBtn" class="px-4 py-1 text-sm font-medium rounded-full bg-blue-500 text-white smooth-transition">Заказчик</button>
+        <button id="roleDevBtn" class="px-4 py-1 text-sm font-medium text-blue-500 hover:text-blue-700 smooth-transition">Разработчик</button>
+      </div>
     </div>
-    <div class="grid grid-cols-2 gap-3 mt-4">
+    <div class="grid grid-cols-2 gap-3 mb-4">
       <div class="bg-blue-50 p-3 rounded-lg">
         <div class="text-xs text-blue-600 mb-1">Завершено заказов</div>
         <div class="text-xl font-semibold" id="completedOrders">0</div>
@@ -366,7 +366,15 @@
     </div>
   </div>
 
-  <!-- Modal: Confirmation -->
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="hidden fixed inset-0 z-50 bg-black bg-opacity-30 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+      <p id="loadingMessage">Загрузка...</p>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
   <div id="confirmationModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg w-full max-w-sm p-4 slide-up">
       <div class="text-center mb-4">
@@ -381,188 +389,12 @@
     </div>
   </div>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="hidden fixed inset-0 z-50 bg-black bg-opacity-30 flex items-center justify-center">
-    <div class="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-      <p id="loadingMessage">Загрузка...</p>
-    </div>
-  </div>
-
-  <!-- Modal: Add Request -->
-  <div id="addRequestModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Новая заявка</h3>
-        <button id="closeRequestModalBtn" class="text-gray-500 hover:text-gray-700">
-          <ion-icon name="close-outline" class="text-xl"></ion-icon>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label for="requestTitle" class="block text-sm font-medium text-gray-700">Название заявки</label>
-          <input type="text" id="requestTitle" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите название">
-          <p id="requestTitleError" class="hidden text-red-500 text-xs">Обязательное поле</p>
-        </div>
-        <div>
-          <label for="requestDescription" class="block text-sm font-medium text-gray-700">Описание</label>
-          <textarea id="requestDescription" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите описание"></textarea>
-          <p id="requestDescError" class="hidden text-red-500 text-xs">Обязательное поле</p>
-        </div>
-        <div>
-          <label for="requestBudget" class="block text-sm font-medium text-gray-700">Бюджет</label>
-          <input type="number" id="requestBudget" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите бюджет">
-          <p id="requestBudgetError" class="hidden text-red-500 text-xs">Введите корректный бюджет</p>
-        </div>
-        <div>
-          <label for="requestDeadline" class="block text-sm font-medium text-gray-700">Срок</label>
-          <select id="requestDeadline" class="w-full border border-gray-300 rounded-md px-3 py-2">
-            <option value="7">7 дней</option>
-            <option value="custom">Другое</option>
-          </select>
-          <div id="customDeadlineContainer" class="hidden mt-2">
-            <input type="number" id="customDeadline" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите количество дней">
-            <p id="customDeadlineError" class="hidden text-red-500 text-xs">Введите корректный срок</p>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Файлы (макс 3)</label>
-          <div id="fileUploadArea" class="border-dashed border-2 border-gray-300 rounded-md p-4 cursor-pointer text-center">
-            Нажмите, чтобы загрузить файлы
-          </div>
-          <input type="file" id="requestFiles" class="hidden" multiple>
-          <p id="requestFilesError" class="hidden text-red-500 text-xs">Можно загрузить не более 3 файлов</p>
-          <div id="requestFilesNames" class="hidden text-sm text-gray-600 mt-2"></div>
-        </div>
-      </div>
-      <div class="mt-4 flex justify-end gap-2">
-        <button id="cancelRequestBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md">Отмена</button>
-        <button id="submitRequestBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md">Создать</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Add Template -->
-  <div id="addTemplateModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Добавить шаблон</h3>
-        <button id="closeTemplateModalBtn" class="text-gray-500 hover:text-gray-700">
-          <ion-icon name="close-outline" class="text-xl"></ion-icon>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label for="templateTitle" class="block text-sm font-medium text-gray-700">Название шаблона</label>
-          <input type="text" id="templateTitle" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите название">
-          <p id="templateTitleError" class="hidden text-red-500 text-xs">Обязательное поле</p>
-        </div>
-        <div>
-          <label for="templateDescription" class="block text-sm font-medium text-gray-700">Описание</label>
-          <textarea id="templateDescription" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите описание"></textarea>
-          <p id="templateDescError" class="hidden text-red-500 text-xs">Обязательное поле</p>
-        </div>
-        <div>
-          <label for="templatePrice" class="block text-sm font-medium text-gray-700">Цена</label>
-          <input type="number" id="templatePrice" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите цену">
-          <p id="templatePriceError" class="hidden text-red-500 text-xs">Введите корректную цену</p>
-        </div>
-        <div>
-          <label for="templateCategory" class="block text-sm font-medium text-gray-700">Категория</label>
-          <select id="templateCategory" class="w-full border border-gray-300 rounded-md px-3 py-2">
-            <option value="UI">UI шаблоны</option>
-            <option value="functional">Функциональные</option>
-            <option value="games">Игры</option>
-            <option value="other">Другое</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">ZIP файл шаблона</label>
-          <div id="templateFileUpload" class="border-dashed border-2 border-gray-300 rounded-md p-4 cursor-pointer text-center">
-            Нажмите для загрузки файла
-          </div>
-          <input type="file" id="templateFile" class="hidden">
-          <p id="templateFileError" class="hidden text-red-500 text-xs">Файл должен быть в формате ZIP</p>
-          <div id="templateFileName" class="hidden text-sm text-gray-600 mt-2"></div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Превью шаблона</label>
-          <div id="templatePreviewUpload" class="border-dashed border-2 border-gray-300 rounded-md p-4 cursor-pointer text-center">
-            Нажмите для загрузки изображения
-          </div>
-          <input type="file" id="templatePreview" class="hidden">
-          <div id="templatePreviewName" class="hidden text-sm text-gray-600 mt-2"></div>
-        </div>
-      </div>
-      <div class="mt-4 flex justify-end gap-2">
-        <button id="cancelTemplateBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md">Отмена</button>
-        <button id="submitTemplateBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md">Отправить</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Settings -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
-      <h3 class="text-lg font-semibold mb-4">Настройки</h3>
-      <div class="mb-4">
-        <label for="languageSelect" class="block text-sm font-medium text-gray-700">Язык</label>
-        <select id="languageSelect" class="w-full border border-gray-300 rounded-md px-3 py-2">
-          <option value="ru">Русский</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-      <div class="mb-4">
-        <span class="block text-sm font-medium text-gray-700">Уведомления</span>
-        <div class="flex items-center gap-2 mt-2">
-          <label><input type="checkbox" id="notifMessages"> Сообщения</label>
-          <label><input type="checkbox" id="notifRequests"> Заявки</label>
-          <label><input type="checkbox" id="notifNews"> Новости</label>
-        </div>
-      </div>
-      <div class="mb-4">
-        <span class="block text-sm font-medium text-gray-700">Тема</span>
-        <div class="flex gap-2 mt-2">
-          <button id="themeLight" class="px-4 py-2 border rounded-md">Светлая</button>
-          <button id="themeDark" class="px-4 py-2 border rounded-md">Тёмная</button>
-          <button id="themeSystem" class="px-4 py-2 border rounded-md">Система</button>
-        </div>
-      </div>
-      <div class="flex justify-end gap-2">
-        <button id="closeSettingsBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md">Отмена</button>
-        <button id="saveSettingsBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md">Сохранить</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Help -->
-  <div id="helpModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
-      <h3 class="text-lg font-semibold mb-4">Помощь</h3>
-      <p class="text-sm text-gray-700 mb-4">Информация о том, как пользоваться приложением.</p>
-      <div class="flex justify-end">
-        <button id="closeHelpBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md">Закрыть</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: About -->
-  <div id="aboutModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
-      <h3 class="text-lg font-semibold mb-4">О приложении</h3>
-      <p class="text-sm text-gray-700 mb-4">Информация об авторе и версии приложения.</p>
-      <div class="flex justify-end">
-        <button id="closeAboutBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md">Закрыть</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Основной скрипт – выполняется после загрузки DOM -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // Инициализация Supabase – замените параметры на ваши реальные данные
       const supabaseUrl = 'https://kwwszbvcwchujbyvswqp.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw'; 
+      const supabaseKey = 'ВАШ_SUPABASE_KEY'; 
       const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
       // Определение названий вкладок и иконок
@@ -702,12 +534,12 @@
       // Обновление UI профиля
       function updateProfileUI(profile) {
         if (profile.first_name) {
-          const name = ${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''};
+          const name = `${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''}`;
           document.getElementById('profileName').textContent = name;
           document.getElementById('profileAvatar').textContent = profile.first_name[0].toUpperCase();
         }
         if (profile.username) {
-          document.getElementById('profileUsername').textContent = @${profile.username};
+          document.getElementById('profileUsername').textContent = `@${profile.username}`;
         }
         if (profile.rating) {
           updateRatingUI(profile.rating);
@@ -716,7 +548,7 @@
 
       function updateUserStatsUI(stats) {
         document.getElementById('completedOrders').textContent = stats.completed_orders || 0;
-        document.getElementById('earnedAmount').textContent = ${stats.earned_amount || 0} TON;
+        document.getElementById('earnedAmount').textContent = `${stats.earned_amount || 0} TON`;
         document.getElementById('templatesSold').textContent = stats.templates_sold || 0;
         document.getElementById('userRating').textContent = stats.rating ? stats.rating.toFixed(1) : 0;
       }
@@ -742,12 +574,12 @@
           emptyStar.setAttribute('name', 'star-outline');
           starsContainer.appendChild(emptyStar);
         }
-        document.getElementById('ratingText').textContent = ${rating.toFixed(1)} (${state.currentUser.profile.reviews_count || 0} отзывов);
+        document.getElementById('ratingText').textContent = `${rating.toFixed(1)} (${state.currentUser.profile.reviews_count || 0} отзывов)`;
       }
 
       function updateWalletUI(wallet) {
         document.getElementById('walletAddress').textContent = wallet.address;
-        document.getElementById('walletBalance').textContent = ${wallet.balance} ${wallet.currency};
+        document.getElementById('walletBalance').textContent = `${wallet.balance} ${wallet.currency}`;
         document.getElementById('connectWalletBtn').classList.add('hidden');
         document.getElementById('walletInfo').classList.remove('hidden');
       }
@@ -755,15 +587,15 @@
       // Обновление UI выбора роли
       function updateRoleUI() {
         if (state.currentRole === 'customer') {
-          document.getElementById('roleCustBtn')?.classList.add('bg-blue-500', 'text-white');
-          document.getElementById('roleCustBtn')?.classList.remove('text-blue-500');
-          document.getElementById('roleDevBtn')?.classList.add('text-blue-500');
-          document.getElementById('roleDevBtn')?.classList.remove('bg-blue-500', 'text-white');
+          document.getElementById('roleCustBtn').classList.add('bg-blue-500', 'text-white');
+          document.getElementById('roleCustBtn').classList.remove('text-blue-500');
+          document.getElementById('roleDevBtn').classList.add('text-blue-500');
+          document.getElementById('roleDevBtn').classList.remove('bg-blue-500', 'text-white');
         } else {
-          document.getElementById('roleDevBtn')?.classList.add('bg-blue-500', 'text-white');
-          document.getElementById('roleDevBtn')?.classList.remove('text-blue-500');
-          document.getElementById('roleCustBtn')?.classList.add('text-blue-500');
-          document.getElementById('roleCustBtn')?.classList.remove('bg-blue-500', 'text-white');
+          document.getElementById('roleDevBtn').classList.add('bg-blue-500', 'text-white');
+          document.getElementById('roleDevBtn').classList.remove('text-blue-500');
+          document.getElementById('roleCustBtn').classList.add('text-blue-500');
+          document.getElementById('roleCustBtn').classList.remove('bg-blue-500', 'text-white');
         }
         document.getElementById('addTemplateCard').classList.toggle('hidden', state.currentRole !== 'developer');
         document.getElementById('customerRequests').classList.toggle('hidden', state.currentRole !== 'customer');
@@ -797,19 +629,19 @@
         const articlesList = document.getElementById('articlesList');
         articlesList.innerHTML = '';
         if (state.articles.length === 0) {
-          articlesList.innerHTML = 
+          articlesList.innerHTML = `
             <div class="text-center py-8 text-gray-500">
               <ion-icon name="document-text-outline" class="text-3xl mb-2"></ion-icon>
               <p>Статьи не найдены</p>
             </div>
-          ;
+          `;
           return;
         }
         state.articles.forEach(article => {
           const articleEl = document.createElement('div');
           articleEl.className = 'flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 smooth-transition';
           articleEl.onclick = () => openArticle(article.id);
-          articleEl.innerHTML = 
+          articleEl.innerHTML = `
             <div class="flex items-start">
               <div class="bg-blue-100 p-2 rounded-lg mr-3">
                 <ion-icon name="document-text-outline" class="text-blue-600 text-xl"></ion-icon>
@@ -824,7 +656,7 @@
               </div>
             </div>
             <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>
-          ;
+          `;
           articlesList.appendChild(articleEl);
         });
       }
@@ -860,7 +692,7 @@
         state.templates.forEach(template => {
           const templateEl = document.createElement('div');
           templateEl.className = 'relative border rounded-lg p-4 hover:shadow-md smooth-transition';
-          templateEl.innerHTML = 
+          templateEl.innerHTML = `
             <div class="flex items-start">
               <div class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
                 <ion-icon name="cube-outline" class="text-purple-600 text-2xl"></ion-icon>
@@ -868,14 +700,14 @@
               <div class="flex-1">
                 <div class="font-medium">${template.title}</div>
                 <div class="text-sm text-gray-500 mt-1">${template.description}</div>
-                ${template.rating > 0 ? 
+                ${template.rating > 0 ? `
                   <div class="flex items-center mt-2">
                     <div class="flex text-yellow-400 text-sm">
                       ${renderStarsHTML(template.rating)}
                     </div>
                     <span class="text-xs text-gray-500 ml-1">${template.rating.toFixed(1)} (${template.reviews_count})</span>
                   </div>
-                 : ''}
+                ` : ''}
               </div>
             </div>
             <div class="flex justify-between items-center mt-3 pt-3 border-t">
@@ -887,7 +719,7 @@
                 Купить
               </button>
             </div>
-          ;
+          `;
           templatesList.appendChild(templateEl);
         });
       }
@@ -936,7 +768,7 @@
           else if (request.status === 'in_progress') { statusBadge = 'bg-blue-100 text-blue-800'; }
           else if (request.status === 'completed') { statusBadge = 'bg-green-100 text-green-800'; }
           else if (request.status === 'cancelled') { statusBadge = 'bg-gray-100 text-gray-800'; }
-          requestEl.innerHTML = 
+          requestEl.innerHTML = `
             <div class="flex justify-between items-start">
               <div>
                 <div class="font-medium">${request.title}</div>
@@ -944,23 +776,23 @@
               </div>
               <div class="${statusBadge} text-xs px-2 py-1 rounded-full">${getStatusText(request.status)}</div>
             </div>
-            ${request.developer_id ? 
+            ${request.developer_id ? `
               <div class="flex items-center mt-3 pt-3 border-t">
                 <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
                   <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
                 </div>
                 <div class="text-sm text-gray-700">Исполнитель: ${request.developer_id}</div>
               </div>
-             : 
+            ` : `
               <div class="flex items-center mt-3 pt-3 border-t">
                 <div class="text-sm text-gray-500">${request.responses_count || 0} откликов</div>
               </div>
-            }
+            `}
             <div class="flex items-center mt-2 text-sm text-gray-500">
               <ion-icon name="time-outline" class="mr-1"></ion-icon>
               <span>Обновлено ${formatDate(request.updated_at)}</span>
             </div>
-          ;
+          `;
           requestsList.appendChild(requestEl);
         });
       }
@@ -997,7 +829,7 @@
           requestEl.className = 'border rounded-lg p-4 hover:shadow-md smooth-transition cursor-pointer';
           requestEl.onclick = () => openRequestChat(request.id);
           const customer = request.customers;
-          requestEl.innerHTML = 
+          requestEl.innerHTML = `
             <div class="flex justify-between items-start">
               <div>
                 <div class="font-medium">${request.title}</div>
@@ -1018,7 +850,7 @@
             <button class="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg smooth-transition">
               Откликнуться
             </button>
-          ;
+          `;
           requestsList.appendChild(requestEl);
         });
       }
@@ -1035,7 +867,7 @@
         const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
         if (diffDays === 0) { return 'сегодня'; }
         else if (diffDays === 1) { return 'вчера'; }
-        else if (diffDays < 7) { return ${diffDays} дня назад; }
+        else if (diffDays < 7) { return `${diffDays} дня назад`; }
         else { return date.toLocaleDateString('ru-RU'); }
       }
 
@@ -1064,10 +896,10 @@
           if (notification.type === 'request') { iconName = 'chatbubble-ellipses-outline'; iconColor = 'blue'; }
           else if (notification.type === 'template') { iconName = 'checkmark-circle-outline'; iconColor = 'green'; }
           else if (notification.type === 'payment') { iconName = 'cash-outline'; iconColor = 'green'; }
-          notificationEl.innerHTML = 
+          notificationEl.innerHTML = `
             <ion-icon name="${iconName}" class="text-${iconColor}-500 text-lg mr-2 mt-0.5 flex-shrink-0"></ion-icon>
             <div class="text-sm">${notification.message}</div>
-          ;
+          `;
           notificationsList.appendChild(notificationEl);
         });
       }
@@ -1114,8 +946,8 @@
           else if (item.type === 'transfer') { iconName = 'swap-horizontal-outline'; iconColor = 'blue'; }
           else if (item.type === 'withdrawal') { iconName = 'arrow-down-outline'; iconColor = 'red'; }
           else if (item.type === 'deposit') { iconName = 'arrow-up-outline'; iconColor = 'green'; }
-          const amountEl = item.amount > 0 ? <div class="text-green-500 font-medium">+${item.amount} ${item.currency}</div> : <div class="text-red-500 font-medium">${item.amount} ${item.currency}</div>;
-          historyItem.innerHTML = 
+          const amountEl = item.amount > 0 ? `<div class="text-green-500 font-medium">+${item.amount} ${item.currency}</div>` : `<div class="text-red-500 font-medium">${item.amount} ${item.currency}</div>`;
+          historyItem.innerHTML = `
             <div class="flex items-start">
               <div class="bg-${iconColor}-100 p-1 rounded mr-2">
                 <ion-icon name="${iconName}" class="text-${iconColor}-600"></ion-icon>
@@ -1126,7 +958,7 @@
               </div>
             </div>
             ${amountEl}
-          ;
+          `;
           historyList.appendChild(historyItem);
         });
         if (state.historyItems.length >= state.historyPerPage) { document.getElementById('loadMoreHistory').classList.remove('hidden'); }
@@ -1139,7 +971,7 @@
           if (error) throw error;
           if (data) {
             state.currentArticleId = articleId;
-            showToast(Открыта статья: ${data.title}, 'info');
+            showToast(`Открыта статья: ${data.title}`, 'info');
           }
         } catch (error) {
           console.error('Error opening article:', error);
@@ -1455,9 +1287,9 @@
 
       function switchTab(tab) {
         if (tab === state.currentTab) return;
-        document.getElementById(tabContent-${state.currentTab}).classList.add('hidden');
-        const currentTabIcon = document.getElementById(tab-icon-${state.currentTab});
-        const currentTabLabel = document.querySelector(#tab-${state.currentTab} span);
+        document.getElementById(`tabContent-${state.currentTab}`).classList.add('hidden');
+        const currentTabIcon = document.getElementById(`tab-icon-${state.currentTab}`);
+        const currentTabLabel = document.querySelector(`#tab-${state.currentTab} span`);
         if (currentTabIcon && currentTabLabel) {
           currentTabIcon.setAttribute('name', tabIcons[state.currentTab].outline);
           currentTabIcon.classList.remove('text-blue-600');
@@ -1465,11 +1297,11 @@
           currentTabLabel.classList.remove('text-blue-600');
           currentTabLabel.classList.add('text-gray-600');
         }
-        document.getElementById(tabContent-${tab}).classList.remove('hidden');
+        document.getElementById(`tabContent-${tab}`).classList.remove('hidden');
         state.currentTab = tab;
         document.getElementById('topBarTitle').textContent = tabTitles[tab] || '';
-        const newTabIcon = document.getElementById(tab-icon-${tab});
-        const newTabLabel = document.querySelector(#tab-${tab} span);
+        const newTabIcon = document.getElementById(`tab-icon-${tab}`);
+        const newTabLabel = document.querySelector(`#tab-${tab} span`);
         if (newTabIcon && newTabLabel) {
           newTabIcon.setAttribute('name', tabIcons[tab].filled);
           newTabIcon.classList.remove('text-gray-600');
@@ -1487,7 +1319,7 @@
         if (role === state.currentRole) return;
         showConfirmation(
           'Смена роли',
-          Вы хотите переключиться в режим ${role === 'developer' ? 'разработчика' : 'заказчика'}?,
+          `Вы хотите переключиться в режим ${role === 'developer' ? 'разработчика' : 'заказчика'}?`,
           async () => {
             showLoading('Смена роли...');
             try {
@@ -1496,7 +1328,7 @@
               state.currentRole = role;
               updateRoleUI();
               await loadRequests();
-              showToast(Режим ${role === 'developer' ? 'разработчика' : 'заказчика'} активирован, 'success');
+              showToast(`Режим ${role === 'developer' ? 'разработчика' : 'заказчика'} активирован`, 'success');
             } catch (error) {
               console.error('Error switching role:', error);
               showToast('Ошибка при смене роли', 'error');
@@ -1647,11 +1479,11 @@
       function showToast(message, type = 'info') {
         const colors = { info: 'bg-blue-500', success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500' };
         const toast = document.createElement('div');
-        toast.className = fixed bottom-16 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded-lg shadow-lg ${colors[type]} fade-in flex items-center;
-        toast.innerHTML = 
+        toast.className = `fixed bottom-16 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded-lg shadow-lg ${colors[type]} fade-in flex items-center`;
+        toast.innerHTML = `
           <ion-icon name="${type === 'success' ? 'checkmark-circle' : type === 'error' ? 'alert-circle' : type === 'warning' ? 'warning' : 'information-circle'}" class="mr-2"></ion-icon>
           <span>${message}</span>
-        ;
+        `;
         document.body.appendChild(toast);
         setTimeout(() => { toast.classList.add('opacity-0', 'transition-opacity', 'duration-300'); setTimeout(() => toast.remove(), 300); }, 3000);
       }
@@ -1682,9 +1514,9 @@
         document.getElementById('tab-market').addEventListener('click', () => switchTab('market'));
         document.getElementById('tab-requests').addEventListener('click', () => switchTab('requests'));
         document.getElementById('tab-profile').addEventListener('click', () => switchTab('profile'));
-        // Переключение ролей (если такие кнопки появятся)
-        document.getElementById('roleCustBtn')?.addEventListener('click', () => switchRole('customer'));
-        document.getElementById('roleDevBtn')?.addEventListener('click', () => switchRole('developer'));
+        // Переключение ролей
+        document.getElementById('roleCustBtn').addEventListener('click', () => switchRole('customer'));
+        document.getElementById('roleDevBtn').addEventListener('click', () => switchRole('developer'));
         // Кошелек
         document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
         document.getElementById('disconnectWalletBtn').addEventListener('click', disconnectWallet);
@@ -1707,7 +1539,7 @@
         // Шаблоны
         document.getElementById('addTemplateCard').addEventListener('click', showAddTemplateModal);
         document.getElementById('filterTemplatesBtn').addEventListener('click', toggleTemplateFilters);
-       document.getElementById('applyFiltersBtn').addEventListener('click', applyTemplateFilters);
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyTemplateFilters);
         document.getElementById('resetFiltersBtn').addEventListener('click', resetTemplateFilters);
         document.getElementById('resetFiltersBtn2').addEventListener('click', resetTemplateFilters);
         // Модальное окно шаблона
