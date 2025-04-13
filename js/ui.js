@@ -1,7 +1,7 @@
 // js/ui.js
 
 /**
- * Вывод toast-уведомлений
+ * Вывод toast-уведомлений.
  */
 export function showToast(message, type = 'info') {
   const colors = { 
@@ -27,7 +27,7 @@ export function showToast(message, type = 'info') {
 }
 
 /**
- * Показ и скрытие загрузочного оверлея
+ * Показ и скрытие загрузочного оверлея.
  */
 export function showLoading(message = 'Загрузка...') {
   const loadingMessage = document.getElementById('loadingMessage');
@@ -40,7 +40,8 @@ export function hideLoading() {
 }
 
 /**
- * Рендеринг профиля пользователя
+ * Рендеринг профиля пользователя.
+ * Если данные получены из Telegram – используются они.
  */
 export function renderUserProfile(profile) {
   const profileNameEl = document.getElementById('profileName');
@@ -66,7 +67,7 @@ export function renderUserProfile(profile) {
 }
 
 /**
- * Рендеринг списка статей
+ * Рендеринг списка статей.
  */
 export function renderArticles(articles) {
   const list = document.getElementById('articlesList');
@@ -102,7 +103,7 @@ export function renderArticles(articles) {
 }
 
 /**
- * Рендеринг списка шаблонов
+ * Рендеринг списка шаблонов.
  */
 export function renderTemplates(templates) {
   const list = document.getElementById('templatesList');
@@ -162,7 +163,7 @@ function renderStarsHTML(rating) {
 }
 
 /**
- * Рендеринг списка заявок для заказчика
+ * Рендеринг списка заявок для заказчика.
  */
 export function renderCustomerRequests(requests) {
   const list = document.getElementById('customerRequestsList');
@@ -213,7 +214,7 @@ function formatDate(dateString) {
 }
 
 /**
- * Рендеринг чата заявки с сообщениями
+ * Рендеринг чата заявки.
  */
 export function renderChat(request, messages) {
   const chatTitle = document.getElementById('chatRequestTitle');
@@ -223,14 +224,13 @@ export function renderChat(request, messages) {
   messages.forEach(msg => {
     appendChatMessage(msg);
   });
-  // Прокрутка вниз
   setTimeout(() => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }, 10);
 }
 
 /**
- * Добавление нового сообщения в чат (UI)
+ * Добавление нового сообщения в чат (UI).
  */
 export function appendChatMessage(msg) {
   const chatMessages = document.getElementById('chatMessages');
