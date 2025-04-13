@@ -1,21 +1,18 @@
 // js/supabase.js
+
 const SUPABASE_URL = 'https://kwwszbvcwchujbyvswqp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw'; // Замените на ваш публичный ключ с ограниченными правами
 export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
- * Получает идентификатор пользователя из localStorage или генерирует новый,
- * затем ищет пользователя в таблице 'users'. Если пользователь не найден, создаёт нового.
+ * Получает идентификатор пользователя из localStorage или генерирует новый с помощью crypto.randomUUID()
  */
 export async function getOrCreateUser() {
-  // Если браузер поддерживает crypto.randomUUID, используем его
   let userId = localStorage.getItem('userId');
   if (!userId) {
-    // Генерируем стандартный UUID без префикса "user_"
-    userId =  
+    userId = crypto.randomUUID();
     localStorage.setItem('userId', userId);
   }
-  // Дальнейшая логика поиска или создания пользователя в базе не изменяется.
   let { data, error } = await supabase
     .from('users')
     .select('*')
@@ -41,7 +38,7 @@ export async function getOrCreateUser() {
 }
 
 /**
- * Обновление роли пользователя.
+ * Обновление роли пользователя
  */
 export async function updateUserRole(userId, role) {
   const { error } = await supabase
@@ -53,7 +50,7 @@ export async function updateUserRole(userId, role) {
 }
 
 /**
- * Функция загрузки статей.
+ * Загрузка статей
  */
 export async function loadArticles() {
   const { data, error } = await supabase
@@ -65,8 +62,8 @@ export async function loadArticles() {
 }
 
 /**
- * Функция загрузки шаблонов (только одобренных).
- * Принимает объект filters: { category, price }.
+ * Загрузка шаблонов (только одобренных)
+ * filters: { category, price }
  */
 export async function loadTemplates(filters = {}) {
   let query = supabase
@@ -91,7 +88,7 @@ export async function loadTemplates(filters = {}) {
 }
 
 /**
- * Функция загрузки заявок для заказчика.
+ * Загрузка заявок для заказчика
  */
 export async function loadCustomerRequests(userId, filters = {}) {
   let query = supabase
@@ -108,7 +105,7 @@ export async function loadCustomerRequests(userId, filters = {}) {
 }
 
 /**
- * Функция загрузки заявок для разработчика.
+ * Загрузка заявок для разработчика
  */
 export async function loadDeveloperRequests(filters = {}) {
   let query = supabase
@@ -138,7 +135,7 @@ export async function loadDeveloperRequests(filters = {}) {
 }
 
 /**
- * Функция загрузки уведомлений (непрочитанных) для пользователя.
+ * Загрузка уведомлений (непрочитанных) для пользователя
  */
 export async function loadNotifications(userId) {
   const { data, error } = await supabase
@@ -152,7 +149,7 @@ export async function loadNotifications(userId) {
 }
 
 /**
- * Функция загрузки истории операций.
+ * Загрузка истории операций
  */
 export async function loadHistory(userId, range = { start: 0, end: 4 }) {
   const { data, error } = await supabase
@@ -166,7 +163,7 @@ export async function loadHistory(userId, range = { start: 0, end: 4 }) {
 }
 
 /**
- * Функция отправки сообщений в чат.
+ * Отправка сообщения в чат
  */
 export async function sendChatMessage(requestId, senderId, message) {
   const { error } = await supabase
@@ -177,7 +174,7 @@ export async function sendChatMessage(requestId, senderId, message) {
 }
 
 /**
- * Функция загрузки сообщений чата заявки.
+ * Загрузка сообщений чата по заявке
  */
 export async function loadChatMessages(requestId) {
   const { data, error } = await supabase
@@ -187,4 +184,18 @@ export async function loadChatMessages(requestId) {
     .order('created_at', { ascending: true });
   if (error) throw error;
   return data;
+}
+
+/**
+ * Подписка на новые сообщения чата для заявки.
+ * callback вызывается для каждого нового сообщения.
+ */
+export function subscribeChatMessages(requestId, callback) {
+  const subscription = supabase
+    .from(`chat_messages:request_id=eq.${requestId}`)
+    .on('INSERT', payload => {
+      callback(payload.new);
+    })
+    .subscribe();
+  return subscription;
 }
