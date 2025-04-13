@@ -1,7 +1,7 @@
 // js/ui.js
 
 /**
- * Вывод тоаст-уведомлений
+ * Вывод toast-уведомлений
  */
 export function showToast(message, type = 'info') {
   const colors = { 
@@ -213,7 +213,7 @@ function formatDate(dateString) {
 }
 
 /**
- * Рендеринг чата заявки.
+ * Рендеринг чата заявки с сообщениями
  */
 export function renderChat(request, messages) {
   const chatTitle = document.getElementById('chatRequestTitle');
@@ -221,32 +221,40 @@ export function renderChat(request, messages) {
   chatTitle.textContent = request.title;
   chatMessages.innerHTML = '';
   messages.forEach(msg => {
-    const isCurrentUser = msg.sender_id === window.app.state.currentUser.id;
-    const bubble = document.createElement('div');
-    bubble.className = 'flex ' + (isCurrentUser ? 'justify-end' : 'justify-start');
-    const bubbleInner = document.createElement('div');
-    bubbleInner.className = 'max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ' +
-      (isCurrentUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none');
-    if (!isCurrentUser) {
-      const senderName = document.createElement('div');
-      senderName.className = 'text-xs font-medium mb-1';
-      senderName.textContent = msg.sender?.first_name || 'Аноним';
-      bubbleInner.appendChild(senderName);
-    }
-    const messageContent = document.createElement('div');
-    messageContent.textContent = msg.message;
-    bubbleInner.appendChild(messageContent);
-    const timestamp = document.createElement('div');
-    timestamp.className = 'text-xs mt-1 text-right ' + (isCurrentUser ? 'text-blue-100' : 'text-gray-500');
-    timestamp.textContent = formatTime(msg.created_at);
-    bubbleInner.appendChild(timestamp);
-    bubble.appendChild(bubbleInner);
-    chatMessages.appendChild(bubble);
+    appendChatMessage(msg);
   });
   // Прокрутка вниз
   setTimeout(() => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }, 10);
+}
+
+/**
+ * Добавление нового сообщения в чат (UI)
+ */
+export function appendChatMessage(msg) {
+  const chatMessages = document.getElementById('chatMessages');
+  const isCurrentUser = msg.sender_id === window.app.state.currentUser.id;
+  const bubble = document.createElement('div');
+  bubble.className = 'flex ' + (isCurrentUser ? 'justify-end' : 'justify-start');
+  const bubbleInner = document.createElement('div');
+  bubbleInner.className = 'max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ' +
+    (isCurrentUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none');
+  if (!isCurrentUser) {
+    const senderName = document.createElement('div');
+    senderName.className = 'text-xs font-medium mb-1';
+    senderName.textContent = msg.sender?.first_name || 'Аноним';
+    bubbleInner.appendChild(senderName);
+  }
+  const messageContent = document.createElement('div');
+  messageContent.textContent = msg.message;
+  bubbleInner.appendChild(messageContent);
+  const timestamp = document.createElement('div');
+  timestamp.className = 'text-xs mt-1 text-right ' + (isCurrentUser ? 'text-blue-100' : 'text-gray-500');
+  timestamp.textContent = formatTime(msg.created_at);
+  bubbleInner.appendChild(timestamp);
+  bubble.appendChild(bubbleInner);
+  chatMessages.appendChild(bubble);
 }
 
 function formatTime(dateString) {
