@@ -4,1608 +4,1586 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MiniApp</title>
-  <!-- Подключаем Tailwind CSS (для продакшена лучше использовать сборку через PostCSS) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Ionicons -->
   <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-  <!-- Supabase JS (v2) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .slide-up { animation: slideUp 0.3s ease-out; }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .pulse { animation: pulse 2s infinite; }
+    .fade-in {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .slide-up {
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .pulse {
+      animation: pulse 2s infinite;
+    }
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
       70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
       100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
     }
-    .smooth-transition { transition: all 0.3s ease; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #555; }
-    * { scrollbar-width: thin; scrollbar-color: #888 #f1f1f1; }
-    .toggle { position: relative; display: inline-block; width: 50px; height: 24px; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-      position: absolute; cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc; transition: .4s; border-radius: 24px;
-    }
-    .toggle-slider:before {
-      position: absolute; content: "";
-      height: 16px; width: 16px; left: 4px; bottom: 4px;
-      background-color: white; transition: .4s; border-radius: 50%;
-    }
-    .toggle input:checked + .toggle-slider { background-color: #3b82f6; }
-    .toggle input:checked + .toggle-slider:before { transform: translateX(26px); }
   </style>
 </head>
-<body class="bg-white text-black font-sans antialiased">
+<body class="bg-white text-black">
 
-  <!-- Top Bar -->
-  <div id="topBar" class="fixed top-0 left-0 w-full h-12 flex items-center justify-center border-b bg-white font-semibold text-gray-800 relative z-10 shadow-sm">
-    <span id="topBarTitle">Заявки</span>
-    <div id="notifIconWrapper" class="absolute right-4 cursor-pointer">
-      <ion-icon name="notifications-outline" class="text-2xl text-gray-600 hover:text-blue-500 smooth-transition"></ion-icon>
-      <span id="notifDot" class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+<!-- Top Bar -->
+<div id="topBar" class="fixed top-0 left-0 w-full h-12 flex items-center justify-center border-b bg-white text-base font-semibold text-gray-800 relative z-10">
+  <span id="topBarTitle">Заявки</span>
+  <!-- Notifications Icon -->
+  <div id="notifIconWrapper" class="absolute right-4 cursor-pointer" onclick="toggleNotifications()">
+    <ion-icon name="notifications-outline" class="text-2xl text-gray-600"></ion-icon>
+    <span id="notifDot" class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+  </div>
+  <!-- Notifications Panel -->
+  <div id="notifPanel" class="hidden absolute right-2 top-full mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-2 text-sm text-gray-700 z-20">
+    <div class="mb-2 flex items-start">
+      <ion-icon name="checkmark-circle-outline" class="text-green-500 text-lg mr-2 mt-0.5"></ion-icon>
+      <div>Шаблон "UltraBot" одобрен и доступен в маркете</div>
     </div>
-    <div id="notifPanel" class="hidden absolute right-2 top-full mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-sm text-gray-700 z-20">
-      <div class="flex justify-between items-center mb-2 pb-2 border-b">
-        <h4 class="font-medium">Уведомления</h4>
-        <button id="markAllAsReadBtn" class="text-blue-500 text-xs">Прочитать все</button>
-      </div>
-      <div class="space-y-3 max-h-80 overflow-y-auto" id="notificationsList"></div>
+    <div class="mb-2 flex items-start">
+      <ion-icon name="chatbubble-ellipses-outline" class="text-blue-500 text-lg mr-2 mt-0.5"></ion-icon>
+      <div>Новый отклик на вашу заявку "Разработка бота для магазина"</div>
+    </div>
+    <div class="flex items-start">
+      <ion-icon name="cloud-download-outline" class="text-purple-500 text-lg mr-2 mt-0.5"></ion-icon>
+      <div>Доступно обновление PuzzleBot до версии 2.3.1</div>
     </div>
   </div>
+</div>
 
-  <!-- Основные разделы -->
-  <div id="tabContent-articles" class="tabContent px-4 mt-12 pb-16 hidden">
-    <div class="relative mb-4">
-      <input type="text" id="articleSearch" placeholder="Поиск статей..." class="w-full border border-gray-300 rounded-full px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition">
+<!-- Content Sections -->
+<div id="tabContent-articles" class="tabContent px-4 mt-12 pb-16 hidden">
+  <!-- Search bar -->
+  <div class="relative mb-4">
+    <input type="text" id="articleSearch" placeholder="Поиск статей..." 
+           class="w-full border border-gray-300 rounded-full px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+    <ion-icon name="search-outline" class="absolute left-3 top-3 text-gray-400 text-lg"></ion-icon>
+  </div>
+  
+  <!-- Articles list -->
+  <div class="space-y-3">
+    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" onclick="openArticle('1')">
+      <div class="flex items-start">
+        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+          <ion-icon name="wallet-outline" class="text-blue-600 text-xl"></ion-icon>
+        </div>
+        <div>
+          <div class="font-medium">Подключение TON кошелька</div>
+          <div class="text-xs text-gray-500 mt-1">Как интегрировать TON Wallet в ваше приложение</div>
+          <div class="flex items-center mt-2 text-xs text-gray-400">
+            <ion-icon name="time-outline" class="mr-1"></ion-icon>
+            <span>5 мин чтения</span>
+          </div>
+        </div>
+      </div>
+      <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>
+    </div>
+    
+    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" onclick="openArticle('2')">
+      <div class="flex items-start">
+        <div class="bg-purple-100 p-2 rounded-lg mr-3">
+          <ion-icon name="document-text-outline" class="text-purple-600 text-xl"></ion-icon>
+        </div>
+        <div>
+          <div class="font-medium">Создание шаблона</div>
+          <div class="text-xs text-gray-500 mt-1">Советы по разработке успешных шаблонов</div>
+          <div class="flex items-center mt-2 text-xs text-gray-400">
+            <ion-icon name="time-outline" class="mr-1"></ion-icon>
+            <span>8 мин чтения</span>
+          </div>
+        </div>
+      </div>
+      <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>
+    </div>
+    
+    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" onclick="openArticle('3')">
+      <div class="flex items-start">
+        <div class="bg-green-100 p-2 rounded-lg mr-3">
+          <ion-icon name="search-outline" class="text-green-600 text-xl"></ion-icon>
+        </div>
+        <div>
+          <div class="font-medium">Поиск разработчика</div>
+          <div class="text-xs text-gray-500 mt-1">Как найти и выбрать подходящего исполнителя</div>
+          <div class="flex items-center mt-2 text-xs text-gray-400">
+            <ion-icon name="time-outline" class="mr-1"></ion-icon>
+            <span>6 мин чтения</span>
+          </div>
+        </div>
+      </div>
+      <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>
+    </div>
+    
+    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" onclick="openArticle('4')">
+      <div class="flex items-start">
+        <div class="bg-yellow-100 p-2 rounded-lg mr-3">
+          <ion-icon name="shield-checkmark-outline" class="text-yellow-600 text-xl"></ion-icon>
+        </div>
+        <div>
+          <div class="font-medium">Безопасность в TON</div>
+          <div class="text-xs text-gray-500 mt-1">Как защитить свои средства и данные</div>
+          <div class="flex items-center mt-2 text-xs text-gray-400">
+            <ion-icon name="time-outline" class="mr-1"></ion-icon>
+            <span>10 мин чтения</span>
+          </div>
+        </div>
+      </div>
+      <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>
+    </div>
+  </div>
+</div>
+
+<div id="tabContent-market" class="tabContent px-4 mt-12 pb-16 hidden">
+  <!-- Add Template (visible for developers) -->
+  <div id="addTemplateCard" class="hidden border-2 border-dashed border-gray-400 rounded-lg p-4 flex items-center justify-center text-gray-600 mb-4 cursor-pointer hover:bg-gray-50 transition-colors" onclick="showAddTemplateModal()">
+    <ion-icon name="add-circle-outline" class="text-2xl mr-2"></ion-icon>
+    <span>Добавить шаблон</span>
+  </div>
+  
+  <!-- Search and filter -->
+  <div class="flex mb-4 gap-2">
+    <div class="relative flex-1">
+      <input type="text" placeholder="Поиск шаблонов..." 
+             class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
       <ion-icon name="search-outline" class="absolute left-3 top-3 text-gray-400 text-lg"></ion-icon>
     </div>
-    <div class="space-y-3" id="articlesList"></div>
-    <div id="articlesLoading" class="flex justify-center py-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+    <button class="bg-gray-100 p-2 rounded-lg" onclick="toggleFilters()">
+      <ion-icon name="filter-outline" class="text-gray-600 text-lg"></ion-icon>
+    </button>
+  </div>
+  
+  <!-- Filters (hidden by default) -->
+  <div id="marketFilters" class="hidden mb-4 p-3 bg-gray-50 rounded-lg">
+    <div class="mb-2">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+      <div class="flex items-center space-x-2">
+        <input type="number" placeholder="От" class="w-full border border-gray-300 rounded-lg px-3 py-1 text-sm">
+        <span>-</span>
+        <input type="number" placeholder="До" class="w-full border border-gray-300 rounded-lg px-3 py-1 text-sm">
+      </div>
+    </div>
+    <div class="mb-2">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+      <select class="w-full border border-gray-300 rounded-lg px-3 py-1 text-sm">
+        <option>Все</option>
+        <option>UI шаблоны</option>
+        <option>Функциональные</option>
+        <option>Игры</option>
+      </select>
+    </div>
+    <div class="flex justify-between">
+      <button class="text-sm text-gray-600" onclick="resetFilters()">Сбросить</button>
+      <button class="text-sm text-blue-600 font-medium" onclick="applyFilters()">Применить</button>
     </div>
   </div>
-
-  <div id="tabContent-market" class="tabContent px-4 mt-12 pb-16 hidden">
-    <div id="addTemplateCard" class="hidden border-2 border-dashed border-gray-400 rounded-lg p-4 flex items-center justify-center text-gray-600 mb-4 cursor-pointer hover:bg-gray-50 smooth-transition">
-      <ion-icon name="add-circle-outline" class="text-2xl mr-2"></ion-icon>
-      <span>Добавить шаблон</span>
-    </div>
-    <div class="flex mb-4 gap-2">
-      <div class="relative flex-1">
-        <input type="text" placeholder="Поиск шаблонов..." id="marketSearch" class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition">
-        <ion-icon name="search-outline" class="absolute left-3 top-3 text-gray-400 text-lg"></ion-icon>
+  
+  <!-- Template list -->
+  <div class="space-y-3">
+    <div class="relative border rounded-lg p-4 hover:shadow-md transition-shadow" data-title="SuperBot UI" data-price="10" data-category="UI шаблоны" data-rating="4.8">
+      <ion-icon name="heart-outline" class="absolute top-4 right-4 text-xl text-gray-400 cursor-pointer hover:text-red-500" onclick="toggleFavorite(this)"></ion-icon>
+      <div class="flex items-start">
+        <div class="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+          <ion-icon name="cube-outline" class="text-blue-600 text-2xl"></ion-icon>
+        </div>
+        <div class="flex-1">
+          <div class="font-medium">SuperBot UI</div>
+          <div class="text-sm text-gray-500 mt-1">Современный интерфейс для Telegram ботов</div>
+          <div class="flex items-center mt-2">
+            <div class="flex text-yellow-400 text-sm">
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star-half"></ion-icon>
+            </div>
+            <span class="text-xs text-gray-500 ml-1">4.8 (24)</span>
+          </div>
+        </div>
       </div>
-      <button id="filterTemplatesBtn" class="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 smooth-transition">
-        <ion-icon name="filter-outline" class="text-gray-600 text-lg"></ion-icon>
-      </button>
-    </div>
-    <div id="marketFilters" class="hidden mb-4 p-3 bg-gray-50 rounded-lg">
-      <div class="grid grid-cols-2 gap-3">
+      <div class="flex justify-between items-center mt-3 pt-3 border-t">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
-          <select id="templateCategoryFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="all">Все</option>
-            <option value="UI">UI шаблоны</option>
-            <option value="functional">Функциональные</option>
-            <option value="games">Игры</option>
-            <option value="other">Другое</option>
-          </select>
+          <div class="text-sm font-semibold text-gray-700">10 TON</div>
+          <div class="text-xs text-gray-500">5 продаж</div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
-          <select id="templatePriceFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="all">Любая</option>
-            <option value="0-10">0-10 TON</option>
-            <option value="10-50">10-50 TON</option>
-            <option value="50+">50+ TON</option>
-          </select>
-        </div>
-      </div>
-      <div class="mt-3 flex justify-between">
-        <button id="resetFiltersBtn" class="text-blue-500 text-sm hover:text-blue-700 smooth-transition">Сбросить</button>
-        <button id="applyFiltersBtn" class="bg-blue-500 text-white text-sm px-3 py-1 rounded-lg hover:bg-blue-600 smooth-transition">Применить</button>
-      </div>
-    </div>
-    <div class="space-y-3" id="templatesList"></div>
-    <div id="templatesLoading" class="flex justify-center py-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-    </div>
-    <div id="noTemplatesMessage" class="hidden text-center py-8 text-gray-500">
-      <ion-icon name="search-outline" class="text-3xl mb-2"></ion-icon>
-      <p>Шаблонов не найдено</p>
-      <button id="resetFiltersBtn2" class="text-blue-500 text-sm mt-2 hover:text-blue-700 smooth-transition">Сбросить фильтры</button>
-    </div>
-  </div>
-
-  <div id="tabContent-requests" class="tabContent px-4 mt-12 pb-16">
-    <div id="customerRequests">
-      <button id="newRequestBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg mb-4 w-full flex items-center justify-center smooth-transition pulse">
-        <ion-icon name="add-outline" class="text-xl mr-2"></ion-icon>
-        <span>Новая заявка</span>
-      </button>
-      <div class="space-y-3" id="customerRequestsList"></div>
-      <div id="noCustomerRequests" class="hidden text-center py-8 text-gray-500">
-        <ion-icon name="clipboard-outline" class="text-3xl mb-2"></ion-icon>
-        <p>У вас пока нет заявок</p>
-        <button id="createRequestBtn" class="text-blue-500 text-sm mt-2 hover:text-blue-700 smooth-transition">Создать заявку</button>
-      </div>
-    </div>
-    <div id="developerRequests" class="hidden">
-      <div class="flex mb-4 gap-2">
-        <div class="relative flex-1">
-          <input type="text" placeholder="Поиск заявок..." id="requestSearch" class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition">
-          <ion-icon name="search-outline" class="absolute left-3 top-3 text-gray-400 text-lg"></ion-icon>
-        </div>
-        <button id="filterRequestsBtn" class="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 smooth-transition">
-          <ion-icon name="filter-outline" class="text-gray-600 text-lg"></ion-icon>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition-colors" 
+                onclick="buyTemplate(this)" data-title="SuperBot UI" data-price="10">
+          Купить
         </button>
       </div>
-      <div id="requestFilters" class="hidden mb-4 p-3 bg-gray-50 rounded-lg">
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Бюджет</label>
-            <select id="requestBudgetFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="all">Любой</option>
-              <option value="0-50">0-50 TON</option>
-              <option value="50-100">50-100 TON</option>
-              <option value="100+">100+ TON</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Срок</label>
-            <select id="requestDeadlineFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="all">Любой</option>
-              <option value="1-3">1-3 дня</option>
-              <option value="3-7">3-7 дней</option>
-              <option value="7+">7+ дней</option>
-            </select>
-          </div>
+    </div>
+    
+    <div class="relative border rounded-lg p-4 hover:shadow-md transition-shadow" data-title="UltraBot Template" data-price="15" data-category="Функциональные" data-rating="4.9">
+      <ion-icon name="heart" class="absolute top-4 right-4 text-xl text-red-500 cursor-pointer" onclick="toggleFavorite(this)"></ion-icon>
+      <div class="flex items-start">
+        <div class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+          <ion-icon name="settings-outline" class="text-purple-600 text-2xl"></ion-icon>
         </div>
-        <div class="mt-3 flex justify-between">
-          <button id="resetRequestFiltersBtn" class="text-blue-500 text-sm hover:text-blue-700 smooth-transition">Сбросить</button>
-          <button id="applyRequestFiltersBtn" class="bg-blue-500 text-white text-sm px-3 py-1 rounded-lg hover:bg-blue-600 smooth-transition">Применить</button>
+        <div class="flex-1">
+          <div class="font-medium">UltraBot Template</div>
+          <div class="text-sm text-gray-500 mt-1">Шаблон бота с расширенными функциями и API</div>
+          <div class="flex items-center mt-2">
+            <div class="flex text-yellow-400 text-sm">
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+            </div>
+            <span class="text-xs text-gray-500 ml-1">4.9 (37)</span>
+          </div>
         </div>
       </div>
-      <div class="space-y-3" id="developerRequestsList"></div>
-      <div id="noDeveloperRequests" class="hidden text-center py-8 text-gray-500">
-        <ion-icon name="clipboard-outline" class="text-3xl mb-2"></ion-icon>
-        <p>Нет доступных заявок</p>
-        <button id="refreshRequestsBtn" class="text-blue-500 text-sm mt-2 hover:text-blue-700 smooth-transition">Обновить</button>
+      <div class="flex justify-between items-center mt-3 pt-3 border-t">
+        <div>
+          <div class="text-sm font-semibold text-gray-700">15 TON</div>
+          <div class="text-xs text-gray-500">12 продаж</div>
+        </div>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition-colors" 
+                onclick="buyTemplate(this)" data-title="UltraBot Template" data-price="15">
+          Купить
+        </button>
+      </div>
+    </div>
+    
+    <div class="relative border rounded-lg p-4 hover:shadow-md transition-shadow" data-title="MyNew Template" data-price="5" data-category="UI шаблоны" data-rating="0">
+      <ion-icon name="heart-outline" class="absolute top-4 right-4 text-xl text-gray-400 cursor-pointer hover:text-red-500" onclick="toggleFavorite(this)"></ion-icon>
+      <div class="flex items-start">
+        <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+          <ion-icon name="time-outline" class="text-gray-600 text-2xl"></ion-icon>
+        </div>
+        <div class="flex-1">
+          <div class="font-medium">MyNew Template</div>
+          <div class="text-sm text-gray-500 mt-1">Новый шаблон (на модерации)</div>
+        </div>
+      </div>
+      <div class="flex justify-between items-center mt-3 pt-3 border-t">
+        <div class="text-sm font-semibold text-orange-500">На модерации</div>
+        <button class="text-sm text-gray-500 cursor-not-allowed" disabled>Недоступно</button>
       </div>
     </div>
   </div>
+</div>
 
-  <div id="tabContent-profile" class="tabContent px-4 mt-12 pb-16 hidden">
-    <div class="bg-gray-100 rounded-lg p-4 mb-4 flex items-center">
-      <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4" id="profileAvatar">
-        П
-      </div>
-      <div>
-        <div id="profileName" class="text-lg font-semibold">Пользователь</div>
-        <div id="profileUsername" class="text-sm text-gray-600"></div>
-        <div id="profileRating" class="flex items-center mt-1">
-          <div class="flex text-yellow-400 text-sm" id="ratingStars">
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star"></ion-icon>
-            <ion-icon name="star-half"></ion-icon>
+<div id="tabContent-requests" class="tabContent px-4 mt-12 pb-16">
+  <!-- Customer view: My Requests -->
+  <div id="customerRequests">
+    <button id="newRequestBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg mb-4 w-full flex items-center justify-center transition-colors pulse" onclick="showAddRequestModal()">
+      <ion-icon name="add-outline" class="text-xl mr-2"></ion-icon>
+      <span>Новая заявка</span>
+    </button>
+    
+    <div class="space-y-3">
+      <div class="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" data-id="1" data-title="Разработка бота для магазина" data-budget="100" data-devname="Иван Д." data-status="in-progress" onclick="openRequestChat(1)">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium">Разработка бота для магазина</div>
+            <div class="text-sm text-gray-500 mt-1">Бюджет: 100 TON</div>
           </div>
-          <span class="text-xs text-gray-500 ml-1" id="ratingText">4.8 (12 отзывов)</span>
+          <div class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">В работе</div>
+        </div>
+        <div class="flex items-center mt-3 pt-3 border-t">
+          <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+            <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
+          </div>
+          <div class="text-sm text-gray-700">Исполнитель: Иван Д.</div>
+        </div>
+        <div class="flex items-center mt-2 text-sm text-gray-500">
+          <ion-icon name="time-outline" class="mr-1"></ion-icon>
+          <span>Обновлено 2 часа назад</span>
+        </div>
+      </div>
+      
+      <div class="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" data-id="2" data-title="Настроить PuzzleBot API" data-budget="50" data-devname="" data-status="open" onclick="openRequestChat(2)">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium">Настроить PuzzleBot API</div>
+            <div class="text-sm text-gray-500 mt-1">Бюджет: 50 TON</div>
+          </div>
+          <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">Открыта</div>
+        </div>
+        <div class="flex items-center mt-3 pt-3 border-t">
+          <div class="text-sm text-gray-500">3 отклика</div>
+        </div>
+        <div class="flex items-center mt-2 text-sm text-gray-500">
+          <ion-icon name="time-outline" class="mr-1"></ion-icon>
+          <span>Обновлено вчера</span>
         </div>
       </div>
     </div>
-    <div id="walletSection" class="mb-4">
-      <button id="connectWalletBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg w-full flex items-center justify-center smooth-transition">
-        <ion-icon name="wallet-outline" class="text-xl mr-2"></ion-icon>
-        <span>Подключить TON кошелек</span>
-      </button>
-      <div id="walletInfo" class="hidden p-4 bg-gray-100 rounded-lg mt-2">
-        <div class="flex justify-between items-center mb-2">
-          <div class="text-sm font-medium text-gray-700">TON Кошелек</div>
-          <button id="disconnectWalletBtn" class="text-blue-500 text-sm hover:text-blue-700 smooth-transition">Отключить</button>
+  </div>
+  
+  <!-- Developer view: Open Requests -->
+  <div id="developerRequests" class="hidden">
+    <div class="space-y-3">
+      <div class="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" data-id="1" data-title="Бот для поддержки" data-customer="ООО Рога и Копыта" data-budget="80" data-status="open" onclick="openRequestChat(1)">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium">Нужен бот для поддержки</div>
+            <div class="text-sm text-gray-500 mt-1">Бюджет: 80 TON • от ООО Рога и Копыта</div>
+          </div>
+          <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">Открыта</div>
         </div>
-        <div id="walletAddress" class="text-xs text-gray-500 break-all bg-white p-2 rounded mb-3"></div>
-        <div class="flex justify-between items-center">
-          <div class="text-sm font-medium text-gray-700">Баланс</div>
-          <div id="walletBalance" class="font-semibold">0 TON</div>
+        <div class="flex items-center mt-3 pt-3 border-t">
+          <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+            <ion-icon name="business-outline" class="text-gray-600"></ion-icon>
+          </div>
+          <div class="text-sm text-gray-700">Компания: ООО Рога и Копыта</div>
         </div>
+        <div class="flex items-center mt-2 text-sm text-gray-500">
+          <ion-icon name="time-outline" class="mr-1"></ion-icon>
+          <span>Опубликовано 5 часов назад</span>
+        </div>
+        <button class="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors" onclick="event.stopPropagation(); respondToRequest(1)">
+          Откликнуться
+        </button>
+      </div>
+      
+      <div class="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" data-id="2" data-title="Мини‑приложение в iOS стиле" data-customer="Петр С." data-budget="60" data-status="open" onclick="openRequestChat(2)">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium">Создать мини‑приложение в iOS стиле</div>
+            <div class="text-sm text-gray-500 mt-1">Бюджет: 60 TON • от Петр С.</div>
+          </div>
+          <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">Открыта</div>
+        </div>
+        <div class="flex items-center mt-3 pt-3 border-t">
+          <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+            <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
+          </div>
+          <div class="text-sm text-gray-700">Частное лицо: Петр С.</div>
+        </div>
+        <div class="flex items-center mt-2 text-sm text-gray-500">
+          <ion-icon name="time-outline" class="mr-1"></ion-icon>
+          <span>Опубликовано вчера</span>
+        </div>
+        <button class="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors" onclick="event.stopPropagation(); respondToRequest(2)">
+          Откликнуться
+        </button>
+      </div>
+      
+      <div class="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" data-id="3" data-title="Доработать бота" data-customer="Anna K." data-budget="30" data-status="open" onclick="openRequestChat(3)">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium">Доработать существующего бота</div>
+            <div class="text-sm text-gray-500 mt-1">Бюджет: 30 TON • от Anna K.</div>
+          </div>
+          <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">Открыта</div>
+        </div>
+        <div class="flex items-center mt-3 pt-3 border-t">
+          <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+            <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
+          </div>
+          <div class="text-sm text-gray-700">Частное лицо: Anna K.</div>
+        </div>
+        <div class="flex items-center mt-2 text-sm text-gray-500">
+          <ion-icon name="time-outline" class="mr-1"></ion-icon>
+          <span>Опубликовано 2 дня назад</span>
+        </div>
+        <button class="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors" onclick="event.stopPropagation(); respondToRequest(3)">
+          Откликнуться
+        </button>
       </div>
     </div>
-    <div class="flex justify-center mb-4">
-      <div id="roleToggle" class="flex bg-gray-200 rounded-full p-1">
-        <button id="roleCustBtn" class="px-4 py-1 text-sm font-medium rounded-full bg-blue-500 text-white smooth-transition">Заказчик</button>
-        <button id="roleDevBtn" class="px-4 py-1 text-sm font-medium text-blue-500 hover:text-blue-700 smooth-transition">Разработчик</button>
-      </div>
-    </div>
-    <div class="grid grid-cols-2 gap-3 mb-4">
-      <div class="bg-blue-50 p-3 rounded-lg">
-        <div class="text-xs text-blue-600 mb-1">Завершено заказов</div>
-        <div class="text-xl font-semibold" id="completedOrders">0</div>
-      </div>
-      <div class="bg-green-50 p-3 rounded-lg">
-        <div class="text-xs text-green-600 mb-1">Заработано</div>
-        <div class="text-xl font-semibold" id="earnedAmount">0 TON</div>
-      </div>
-      <div class="bg-purple-50 p-3 rounded-lg">
-        <div class="text-xs text-purple-600 mb-1">Шаблонов продано</div>
-        <div class="text-xl font-semibold" id="templatesSold">0</div>
-      </div>
-      <div class="bg-yellow-50 p-3 rounded-lg">
-        <div class="text-xs text-yellow-600 mb-1">Рейтинг</div>
-        <div class="text-xl font-semibold" id="userRating">0</div>
-      </div>
+  </div>
+</div>
+
+<div id="tabContent-profile" class="tabContent px-4 mt-12 pb-16 hidden">
+  <!-- Profile Info -->
+  <div class="bg-gray-100 rounded-lg p-4 mb-4 flex items-center">
+    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4" id="profileAvatar">
+      П
     </div>
     <div>
-      <h3 class="font-medium mb-2">История операций</h3>
-      <ul class="text-sm text-gray-700 space-y-3" id="historyList"></ul>
-      <button id="loadMoreHistory" class="w-full text-center text-blue-500 text-sm py-2 hover:text-blue-700 smooth-transition hidden">
-        Показать еще
+      <div id="profileName" class="text-lg font-semibold">Пользователь</div>
+      <div id="profileUsername" class="text-sm text-gray-600"></div>
+    </div>
+  </div>
+  
+  <!-- Wallet Connection -->
+  <div id="walletSection" class="mb-4">
+    <button id="connectWalletBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg w-full flex items-center justify-center transition-colors" onclick="connectWallet()">
+      <ion-icon name="wallet-outline" class="text-xl mr-2"></ion-icon>
+      <span>Подключить TON кошелек</span>
+    </button>
+    <div id="walletInfo" class="hidden p-4 bg-gray-100 rounded-lg mt-2">
+      <div class="flex justify-between items-center mb-2">
+        <div class="text-sm font-medium text-gray-700">TON Кошелек</div>
+        <button class="text-blue-500 text-sm" onclick="disconnectWallet()">Отключить</button>
+      </div>
+      <div id="walletAddress" class="text-xs text-gray-500 break-all bg-white p-2 rounded mb-3"></div>
+      <div class="flex justify-between items-center">
+        <div class="text-sm font-medium text-gray-700">Баланс</div>
+        <div id="walletBalance" class="font-semibold">0 TON</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Role Toggle -->
+  <div class="flex justify-center mb-4">
+    <div id="roleToggle" class="flex bg-gray-200 rounded-full p-1">
+      <button id="roleCustBtn" class="px-4 py-1 text-sm font-medium rounded-full bg-blue-500 text-white" onclick="switchRole('customer')">Заказчик</button>
+      <button id="roleDevBtn" class="px-4 py-1 text-sm font-medium text-blue-500" onclick="switchRole('developer')">Разработчик</button>
+    </div>
+  </div>
+  
+  <!-- Stats -->
+  <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="bg-blue-50 p-3 rounded-lg">
+      <div class="text-xs text-blue-600 mb-1">Завершено заказов</div>
+      <div class="text-xl font-semibold">5</div>
+    </div>
+    <div class="bg-green-50 p-3 rounded-lg">
+      <div class="text-xs text-green-600 mb-1">Заработано</div>
+      <div class="text-xl font-semibold">320 TON</div>
+    </div>
+    <div class="bg-purple-50 p-3 rounded-lg">
+      <div class="text-xs text-purple-600 mb-1">Шаблонов продано</div>
+      <div class="text-xl font-semibold">3</div>
+    </div>
+    <div class="bg-yellow-50 p-3 rounded-lg">
+      <div class="text-xs text-yellow-600 mb-1">Рейтинг</div>
+      <div class="text-xl font-semibold">4.8</div>
+    </div>
+  </div>
+  
+  <!-- History -->
+  <div>
+    <h3 class="font-medium mb-2">История операций</h3>
+    <ul class="text-sm text-gray-700 space-y-3">
+      <li class="flex justify-between items-start">
+        <div class="flex items-start">
+          <div class="bg-blue-100 p-1 rounded mr-2">
+            <ion-icon name="document-text-outline" class="text-blue-600"></ion-icon>
+          </div>
+          <div>
+            <div>Создана заявка "Настроить PuzzleBot API"</div>
+            <div class="text-xs text-gray-400">Сегодня, 14:30</div>
+          </div>
+        </div>
+      </li>
+      <li class="flex justify-between items-start">
+        <div class="flex items-start">
+          <div class="bg-purple-100 p-1 rounded mr-2">
+            <ion-icon name="pricetag-outline" class="text-purple-600"></ion-icon>
+          </div>
+          <div>
+            <div>Куплен шаблон "SuperBot UI"</div>
+            <div class="text-xs text-gray-400">Вчера, 11:45</div>
+          </div>
+        </div>
+        <div class="text-red-500 font-medium">-10 TON</div>
+      </li>
+      <li class="flex justify-between items-start">
+        <div class="flex items-start">
+          <div class="bg-green-100 p-1 rounded mr-2">
+            <ion-icon name="cash-outline" class="text-green-600"></ion-icon>
+          </div>
+          <div>
+            <div>Продан шаблон "UltraBot Template"</div>
+            <div class="text-xs text-gray-400">3 дня назад</div>
+          </div>
+        </div>
+        <div class="text-green-500 font-medium">+8 TON</div>
+      </li>
+      <li class="flex justify-between items-start">
+        <div class="flex items-start">
+          <div class="bg-blue-100 p-1 rounded mr-2">
+            <ion-icon name="checkmark-circle-outline" class="text-blue-600"></ion-icon>
+          </div>
+          <div>
+            <div>Завершен заказ "Разработка бота для магазина"</div>
+            <div class="text-xs text-gray-400">5 дней назад</div>
+          </div>
+        </div>
+        <div class="text-green-500 font-medium">+100 TON</div>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- Bottom Nav Bar -->
+<div id="bottomNav" class="fixed bottom-0 left-0 w-full h-14 border-t bg-white flex justify-around items-center z-10">
+  <button id="tab-articles" class="flex flex-col items-center justify-center flex-1" onclick="switchTab('articles')">
+    <ion-icon id="tab-icon-articles" name="document-text-outline" class="text-2xl text-gray-600"></ion-icon>
+    <span class="text-xs text-gray-600">Статьи</span>
+  </button>
+  <button id="tab-market" class="flex flex-col items-center justify-center flex-1" onclick="switchTab('market')">
+    <ion-icon id="tab-icon-market" name="pricetag-outline" class="text-2xl text-gray-600"></ion-icon>
+    <span class="text-xs text-gray-600">Маркет</span>
+  </button>
+  <button id="tab-requests" class="flex flex-col items-center justify-center flex-1" onclick="switchTab('requests')">
+    <ion-icon id="tab-icon-requests" name="clipboard-outline" class="text-2xl text-blue-600"></ion-icon>
+    <span class="text-xs text-blue-600">Заявки</span>
+  </button>
+  <button id="tab-profile" class="flex flex-col items-center justify-center flex-1" onclick="switchTab('profile')">
+    <ion-icon id="tab-icon-profile" name="person-outline" class="text-2xl text-gray-600"></ion-icon>
+    <span class="text-xs text-gray-600">Профиль</span>
+  </button>
+</div>
+
+<!-- Chat Overlay -->
+<div id="chatOverlay" class="hidden fixed inset-0 z-50 flex flex-col bg-white">
+  <div class="h-12 flex items-center border-b px-4">
+    <button class="mr-2" onclick="closeChat()">
+      <ion-icon name="chevron-back-outline" class="text-2xl text-blue-600"></ion-icon>
+    </button>
+    <div class="flex-1 font-medium truncate" id="chatRequestTitle">Заявка</div>
+    <button class="text-blue-600 text-sm font-medium" id="chatRequestAction" onclick="handleChatAction()"></button>
+  </div>
+  <div id="chatMessages" class="flex-1 overflow-y-auto px-4 py-2 space-y-3"></div>
+  <div class="border-t p-3 flex items-center">
+    <button class="text-gray-500 mr-2" onclick="showAttachmentOptions()">
+      <ion-icon name="attach-outline" class="text-xl"></ion-icon>
+    </button>
+    <input id="chatInput" type="text" class="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Написать сообщение..." />
+    <button id="chatSendBtn" class="ml-2 text-blue-600 font-semibold text-sm" onclick="sendMessage()">Отправить</button>
+  </div>
+</div>
+
+<!-- Add Request Modal -->
+<div id="addRequestModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg w-full max-w-md p-4 slide-up">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Новая заявка</h3>
+      <button onclick="closeAddRequestModal()">
+        <ion-icon name="close-outline" class="text-xl text-gray-500"></ion-icon>
       </button>
     </div>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Название заявки</label>
+        <input type="text" id="requestTitle" placeholder="Что нужно сделать?" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+        <textarea id="requestDescription" rows="3" placeholder="Опишите задачу подробнее..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Бюджет (TON)</label>
+        <input type="number" id="requestBudget" placeholder="50" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Срок выполнения</label>
+        <select id="requestDeadline" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          <option value="3">3 дня</option>
+          <option value="7">1 неделя</option>
+          <option value="14">2 недели</option>
+          <option value="30">1 месяц</option>
+          <option value="custom">Другое</option>
+        </select>
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end space-x-2">
+      <button class="px-4 py-2 text-sm text-gray-600 rounded-lg border" onclick="closeAddRequestModal()">Отмена</button>
+      <button class="px-4 py-2 text-sm text-white bg-blue-500 rounded-lg" onclick="submitNewRequest()">Опубликовать</button>
+    </div>
   </div>
+</div>
 
-  <!-- Bottom Nav Bar -->
-  <div id="bottomNav" class="fixed bottom-0 left-0 w-full h-14 border-t bg-white flex justify-around items-center z-10 shadow-sm">
-    <button id="tab-articles" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-articles" name="document-text-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
-      <span class="text-xs text-gray-600">Статьи</span>
-    </button>
-    <button id="tab-market" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-market" name="pricetag-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
-      <span class="text-xs text-gray-600">Маркет</span>
-    </button>
-    <button id="tab-requests" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-requests" name="clipboard-outline" class="text-2xl text-blue-600 mb-1"></ion-icon>
-      <span class="text-xs text-blue-600">Заявки</span>
-    </button>
-    <button id="tab-profile" class="flex flex-col items-center justify-center flex-1 h-full smooth-transition">
-      <ion-icon id="tab-icon-profile" name="person-outline" class="text-2xl text-gray-600 mb-1"></ion-icon>
-      <span class="text-xs text-gray-600">Профиль</span>
-    </button>
-  </div>
-
-  <!-- Chat Overlay -->
-  <div id="chatOverlay" class="hidden fixed inset-0 z-50 flex flex-col bg-white">
-    <div class="h-12 flex items-center border-b px-4 bg-white sticky top-0 z-10">
-      <button id="closeChatBtn" class="mr-2">
-        <ion-icon name="chevron-back-outline" class="text-2xl text-blue-600"></ion-icon>
+<!-- Add Template Modal -->
+<div id="addTemplateModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg w-full max-w-md p-4 slide-up">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Добавить шаблон</h3>
+      <button onclick="closeAddTemplateModal()">
+        <ion-icon name="close-outline" class="text-xl text-gray-500"></ion-icon>
       </button>
-      <div class="flex-1 font-medium truncate" id="chatRequestTitle">Заявка</div>
-      <button id="chatRequestActionBtn" class="text-blue-600 text-sm font-medium hover:text-blue-800 smooth-transition"></button>
     </div>
-    <div id="chatMessages" class="flex-1 overflow-y-auto px-4 py-2 space-y-3"></div>
-    <div class="border-t p-3 flex items-center bg-white sticky bottom-0">
-      <div class="relative">
-        <button id="attachFileBtn" class="text-gray-500 hover:text-gray-700 mr-2 smooth-transition">
-          <ion-icon name="attach-outline" class="text-xl"></ion-icon>
-        </button>
-        <div id="attachmentOptions" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-lg p-2 z-20">
-          <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-lg smooth-transition">
-            <ion-icon name="image-outline" class="mr-2"></ion-icon> Фото
-          </button>
-          <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-lg smooth-transition">
-            <ion-icon name="document-outline" class="mr-2"></ion-icon> Файл
-          </button>
-          <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-lg smooth-transition">
-            <ion-icon name="location-outline" class="mr-2"></ion-icon> Местоположение
-          </button>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Название шаблона</label>
+        <input type="text" id="templateTitle" placeholder="SuperBot UI" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+        <textarea id="templateDescription" rows="3" placeholder="Опишите функционал шаблона..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Цена (TON)</label>
+        <input type="number" id="templatePrice" placeholder="10" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+        <select id="templateCategory" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          <option value="UI">UI шаблоны</option>
+          <option value="functional">Функциональные</option>
+          <option value="games">Игры</option>
+          <option value="other">Другое</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Файл шаблона</label>
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50" onclick="document.getElementById('templateFile').click()">
+          <ion-icon name="cloud-upload-outline" class="text-2xl text-gray-400 mb-1"></ion-icon>
+          <div class="text-sm text-gray-500">Нажмите для загрузки файла</div>
+          <div id="templateFileName" class="text-xs text-gray-400 mt-1 hidden"></div>
+          <input type="file" id="templateFile" class="hidden" accept=".zip,.rar,.7z">
         </div>
       </div>
-      <input id="chatInput" type="text" class="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition" placeholder="Написать сообщение..." />
-      <button id="chatSendBtn" class="ml-2 text-blue-600 font-semibold text-sm hover:text-blue-800 smooth-transition">Отправить</button>
+    </div>
+    <div class="mt-6 flex justify-end space-x-2">
+      <button class="px-4 py-2 text-sm text-gray-600 rounded-lg border" onclick="closeAddTemplateModal()">Отмена</button>
+      <button class="px-4 py-2 text-sm text-white bg-blue-500 rounded-lg" onclick="submitNewTemplate()">Отправить</button>
     </div>
   </div>
+</div>
 
-  <!-- Modal: Login -->
-  <div id="loginModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Вход</h3>
-        <button id="closeLoginModalBtn" class="text-gray-500 hover:text-gray-700 smooth-transition">
-          <ion-icon name="close-outline" class="text-xl"></ion-icon>
-        </button>
-      </div>
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label for="loginEmail" class="block text-sm font-medium text-gray-700">Email</label>
-          <input type="email" id="loginEmail" required placeholder="you@example.com" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label for="loginPassword" class="block text-sm font-medium text-gray-700">Пароль</label>
-          <input type="password" id="loginPassword" required placeholder="Ваш пароль" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <button type="submit" class="w-full flex justify-center py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-          Войти
-        </button>
-      </form>
-      <p class="text-sm text-center text-gray-600 mt-4">
-        Нет аккаунта? <a href="#" id="showRegisterLink" class="text-blue-500 hover:underline">Зарегистрироваться</a>
-      </p>
+<!-- Article Overlay -->
+<div id="articleOverlay" class="hidden fixed inset-0 z-50 bg-white flex flex-col overflow-y-auto">
+  <div class="h-12 flex items-center border-b px-4 sticky top-0 bg-white">
+    <button class="mr-2" onclick="closeArticle()">
+      <ion-icon name="chevron-back-outline" class="text-2xl text-blue-600"></ion-icon>
+    </button>
+    <div class="font-medium truncate" id="articleTitle">Статья</div>
+  </div>
+  <div class="p-4">
+    <div id="articleContent" class="prose max-w-none">
+      <!-- Content will be loaded here -->
     </div>
   </div>
+</div>
 
-  <!-- Modal: Register -->
-  <div id="registerModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Регистрация</h3>
-        <button id="closeRegisterModalBtn" class="text-gray-500 hover:text-gray-700 smooth-transition">
-          <ion-icon name="close-outline" class="text-xl"></ion-icon>
-        </button>
-      </div>
-      <form id="registerForm" class="space-y-4">
-        <div>
-          <label for="registerEmail" class="block text-sm font-medium text-gray-700">Email</label>
-          <input type="email" id="registerEmail" required placeholder="you@example.com" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label for="registerPassword" class="block text-sm font-medium text-gray-700">Пароль</label>
-          <input type="password" id="registerPassword" required placeholder="Ваш пароль" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label for="registerConfirmPassword" class="block text-sm font-medium text-gray-700">Подтвердите пароль</label>
-          <input type="password" id="registerConfirmPassword" required placeholder="Повторите пароль" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <button type="submit" class="w-full flex justify-center py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-          Зарегистрироваться
-        </button>
-      </form>
-      <p class="text-sm text-center text-gray-600 mt-4">
-        Есть аккаунт? <a href="#" id="showLoginLink" class="text-blue-500 hover:underline">Войти</a>
-      </p>
-    </div>
-  </div>
+<!-- Scripts -->
+<script>
+  // Initial state
+  let currentTab = 'requests';
+  let currentRole = 'customer';
+  let walletConnected = false;
+  let tonBalance = 0;
+  let currentChatRequestId = null;
+  let chatMessages = [];
+  
+  // Sample articles data
+  const articles = {
+    '1': {
+      title: 'Подключение TON кошелька',
+      content: `
+        <h2>Как интегрировать TON Wallet в ваше приложение</h2>
+        <p>TON Wallet предоставляет удобный способ для работы с криптовалютой в ваших приложениях. Вот пошаговая инструкция по интеграции:</p>
+        
+        <h3>1. Установка необходимых библиотек</h3>
+        <p>Для начала работы вам потребуется установить официальный SDK:</p>
+        <pre><code>npm install ton-wallet-sdk</code></pre>
+        
+        <h3>2. Инициализация кошелька</h3>
+        <p>Создайте экземпляр кошелька в вашем приложении:</p>
+        <pre><code>const wallet = new TONWallet({
+  apiKey: 'ВАШ_API_КЛЮЧ',
+  network: 'mainnet' // или 'testnet'
+});</code></pre>
+        
+        <h3>3. Авторизация пользователя</h3>
+        <p>Используйте метод авторизации для подключения кошелька пользователя:</p>
+        <pre><code>wallet.connect()
+  .then(account => {
+    console.log('Кошелек подключен:', account.address);
+  })
+  .catch(error => {
+    console.error('Ошибка подключения:', error);
+  });</code></pre>
+        
+        <h3>4. Работа с транзакциями</h3>
+        <p>Для отправки транзакций используйте метод sendTransaction:</p>
+        <pre><code>wallet.sendTransaction({
+  to: 'адрес_получателя',
+  amount: 10, // сумма в TON
+  message: 'Сообщение'
+});</code></pre>
+        
+        <p>Интеграция TON Wallet открывает широкие возможности для вашего приложения, позволяя реализовать платежи и другие финансовые операции.</p>
+      `
+    },
+    '2': {
+      title: 'Создание шаблона',
+      content: `
+        <h2>Советы по разработке успешных шаблонов</h2>
+        <p>Создание качественных шаблонов требует внимания к деталям и понимания потребностей пользователей. Вот ключевые аспекты:</p>
+        
+        <h3>1. Определение целевой аудитории</h3>
+        <p>Перед началом разработки четко определите, для кого предназначен ваш шаблон. Это могут быть:</p>
+        <ul>
+          <li>Начинающие разработчики</li>
+          <li>Опытные программисты</li>
+          <li>Конкретные ниши (магазины, блоги, сервисы)</li>
+        </ul>
+        
+        <h3>2. Структура проекта</h3>
+        <p>Хороший шаблон должен иметь четкую структуру:</p>
+        <pre><code>/project
+  /src
+    /components
+    /styles
+    /assets
+  /docs
+    README.md
+    LICENSE
+  package.json</code></pre>
+        
+        <h3>3. Документация</h3>
+        <p>Подробная документация увеличивает ценность шаблона. Обязательно включите:</p>
+        <ul>
+          <li>Инструкцию по установке</li>
+          <li>Описание конфигурационных параметров</li>
+          <li>Примеры использования</li>
+          <li>Часто задаваемые вопросы</li>
+        </ul>
+        
+        <h3>4. Тестирование</h3>
+        <p>Перед публикацией убедитесь, что шаблон:</p>
+        <ul>
+          <li>Работает на разных устройствах</li>
+          <li>Не содержит ошибок</li>
+          <li>Имеет приемлемую производительность</li>
+        </ul>
+        
+        <p>Следуя этим рекомендациям, вы сможете создавать востребованные шаблоны, которые принесут пользу сообществу и доход вам.</p>
+      `
+    },
+    '3': {
+      title: 'Поиск разработчика',
+      content: `
+        <h2>Как найти и выбрать подходящего исполнителя</h2>
+        <p>Поиск надежного разработчика может быть сложной задачей. Вот руководство, которое поможет вам сделать правильный выбор.</p>
+        
+        <h3>1. Определение требований</h3>
+        <p>Прежде чем искать разработчика, четко сформулируйте:</p>
+        <ul>
+          <li>Технические требования к проекту</li>
+          <li>Сроки выполнения</li>
+          <li>Бюджет</li>
+          <li>Критерии успешности проекта</li>
+        </ul>
+        
+        <h3>2. Где искать</h3>
+        <p>Рассмотрите следующие площадки:</p>
+        <ul>
+          <li>Специализированные биржи фриланса</li>
+          <li>Профессиональные сообщества</li>
+          <li>Рекомендации коллег</li>
+          <li>Наш маркетплейс шаблонов</li>
+        </ul>
+        
+        <h3>3. Оценка кандидатов</h3>
+        <p>При оценке разработчиков обратите внимание на:</p>
+        <table class="w-full border">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="p-2 text-left">Критерий</th>
+              <th class="p-2 text-left">Что проверять</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b">
+              <td class="p-2">Портфолио</td>
+              <td class="p-2">Реальные завершенные проекты</td>
+            </tr>
+            <tr class="border-b">
+              <td class="p-2">Отзывы</td>
+              <td class="p-2">Репутация на платформах</td>
+            </tr>
+            <tr class="border-b">
+              <td class="p-2">Коммуникация</td>
+              <td class="p-2">Ясность и скорость ответов</td>
+            </tr>
+            <tr>
+              <td class="p-2">Техническое собеседование</td>
+              <td class="p-2">Понимание ваших требований</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h3>4. Начало работы</h3>
+        <p>После выбора разработчика:</p>
+        <ol>
+          <li>Заключите соглашение с четкими условиями</li>
+          <li>Определите этапы и контрольные точки</li>
+          <li>Установите регулярные отчеты о прогрессе</li>
+        </ol>
+        
+        <p>Правильный выбор разработчика - залог успешной реализации вашего проекта.</p>
+      `
+    }
+  };
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="hidden fixed inset-0 z-50 bg-black bg-opacity-30 flex items-center justify-center">
-    <div class="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-      <p id="loadingMessage">Загрузка...</p>
-    </div>
-  </div>
+  // Update topBar title based on current tab
+  function updateTopBarTitle() {
+    const titles = { 'articles': 'Статьи', 'market': 'Маркет', 'requests': 'Заявки', 'profile': 'Профиль' };
+    document.getElementById('topBarTitle').innerText = titles[currentTab] || '';
+  }
 
-  <!-- Confirmation Modal -->
-  <div id="confirmationModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm p-4 slide-up">
-      <div class="text-center mb-4">
-        <ion-icon name="help-circle-outline" class="text-4xl text-yellow-500 mb-2"></ion-icon>
-        <h3 id="confirmationTitle" class="text-lg font-semibold">Подтвердите действие</h3>
-        <p id="confirmationMessage" class="text-sm text-gray-600 mt-1">Вы уверены, что хотите выполнить это действие?</p>
-      </div>
-      <div class="flex justify-center space-x-3">
-        <button id="cancelConfirmBtn" class="px-4 py-2 text-sm text-gray-600 rounded-lg border hover:bg-gray-100 smooth-transition">Отмена</button>
-        <button id="confirmActionBtn" class="px-4 py-2 text-sm text-white bg-blue-500 rounded-lg hover:bg-blue-600 smooth-transition">Подтвердить</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Основной скрипт – выполняется после загрузки DOM -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Инициализация Supabase – замените параметры на ваши реальные данные
-      const supabaseUrl = 'https://kwwszbvcwchujbyvswqp.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw'; 
-      const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-      // Определение названий вкладок и иконок
-      const tabTitles = { articles: 'Статьи', market: 'Маркет', requests: 'Заявки', profile: 'Профиль' };
-      const tabIcons = {
-        articles: { outline: 'document-text-outline', filled: 'document-text' },
-        market: { outline: 'pricetag-outline', filled: 'pricetag' },
-        requests: { outline: 'clipboard-outline', filled: 'clipboard' },
-        profile: { outline: 'person-outline', filled: 'person' }
+  // Switch bottom tab
+  function switchTab(tab) {
+    if (tab === currentTab) return;
+    
+    // Hide current content
+    document.getElementById('tabContent-' + currentTab).classList.add('hidden');
+    // Deactivate current tab icon
+    const prevIcon = document.getElementById('tab-icon-' + currentTab);
+    const prevLabel = document.querySelector('#tab-' + currentTab + ' span');
+    if (prevIcon && prevLabel) {
+      const outlineNames = { 
+        'articles': 'document-text-outline', 
+        'market': 'pricetag-outline', 
+        'requests': 'clipboard-outline', 
+        'profile': 'person-outline' 
       };
-
-      // Состояние приложения
-      const state = {
-        currentTab: 'requests',
-        currentRole: 'customer',
-        currentUser: null,
-        walletConnected: false,
-        currentChatRequestId: null,
-        chatMessages: [],
-        theme: 'light',
-        notifications: { messages: true, requests: true, news: false },
-        language: 'ru',
-        historyItems: [],
-        articles: [],
-        templates: [],
-        requests: [],
-        isLoading: false,
-        currentArticleId: null,
-        currentTemplateId: null,
-        currentRequestId: null,
-        historyPage: 1,
-        historyPerPage: 5,
-        pendingAction: null,
-        pendingActionData: null,
-        selectedFiles: [],
-        selectedTemplateFile: null,
-        selectedTemplatePreview: null
+      prevIcon.setAttribute('name', outlineNames[currentTab]);
+      prevIcon.classList.remove('text-blue-600');
+      prevIcon.classList.add('text-gray-600');
+      prevLabel.classList.remove('text-blue-600');
+      prevLabel.classList.add('text-gray-600');
+    }
+    
+    // Show new content
+    document.getElementById('tabContent-' + tab).classList.remove('hidden');
+    currentTab = tab;
+    updateTopBarTitle();
+    
+    // Activate new tab icon
+    const newIcon = document.getElementById('tab-icon-' + tab);
+    const newLabel = document.querySelector('#tab-' + tab + ' span');
+    if (newIcon && newLabel) {
+      const filledNames = { 
+        'articles': 'document-text', 
+        'market': 'pricetag', 
+        'requests': 'clipboard', 
+        'profile': 'person' 
       };
+      newIcon.setAttribute('name', filledNames[tab]);
+      newIcon.classList.remove('text-gray-600');
+      newIcon.classList.add('text-blue-600');
+      newLabel.classList.remove('text-gray-600');
+      newLabel.classList.add('text-blue-600');
+    }
+    
+    // Ensure correct subview for role
+    if (tab === 'requests') {
+      updateRequestsView();
+    } else if (tab === 'market') {
+      updateMarketView();
+    }
+  }
 
-      // Инициализация при загрузке страницы
-      initApp();
-      setupEventListeners();
+  // Switch role (customer <-> developer)
+  function switchRole(role) {
+    if (role === currentRole) return;
+    currentRole = role;
+    
+    // Toggle segmented control style
+    if (role === 'customer') {
+      document.getElementById('roleCustBtn').classList.add('bg-blue-500', 'text-white');
+      document.getElementById('roleCustBtn').classList.remove('text-blue-500');
+      document.getElementById('roleDevBtn').classList.add('text-blue-500');
+      document.getElementById('roleDevBtn').classList.remove('bg-blue-500', 'text-white');
+    } else {
+      document.getElementById('roleDevBtn').classList.add('bg-blue-500', 'text-white');
+      document.getElementById('roleDevBtn').classList.remove('text-blue-500');
+      document.getElementById('roleCustBtn').classList.add('text-blue-500');
+      document.getElementById('roleCustBtn').classList.remove('bg-blue-500', 'text-white');
+    }
+    
+    // Update views for new role
+    updateRequestsView();
+    updateMarketView();
+    
+    // Update profile stats based on role
+    updateProfileStats();
+  }
 
-      async function initApp() {
-        try {
-          await checkAuth();
-          switchTab(state.currentTab);
-          await loadInitialData();
-          initTheme();
-          initLanguage();
-          initNotifications();
-        } catch (error) {
-          console.error('App initialization failed:', error);
-          showToast('Не удалось загрузить приложение', 'error');
-        }
+  function updateRequestsView() {
+    if (currentRole === 'customer') {
+      document.getElementById('customerRequests').classList.remove('hidden');
+      document.getElementById('developerRequests').classList.add('hidden');
+    } else {
+      document.getElementById('customerRequests').classList.add('hidden');
+      document.getElementById('developerRequests').classList.remove('hidden');
+    }
+  }
+
+  function updateMarketView() {
+    if (currentRole === 'developer') {
+      document.getElementById('addTemplateCard').classList.remove('hidden');
+    } else {
+      document.getElementById('addTemplateCard').classList.add('hidden');
+    }
+  }
+  
+  function updateProfileStats() {
+    if (currentRole === 'developer') {
+      document.querySelector('#tabContent-profile .bg-green-50 .text-xl').textContent = '420 TON';
+      document.querySelector('#tabContent-profile .bg-purple-50 .text-xl').textContent = '7';
+    } else {
+      document.querySelector('#tabContent-profile .bg-green-50 .text-xl').textContent = '320 TON';
+      document.querySelector('#tabContent-profile .bg-purple-50 .text-xl').textContent = '3';
+    }
+  }
+
+  // Toggle favorite (heart icon)
+  function toggleFavorite(iconEl) {
+    if (iconEl.getAttribute('name') === 'heart-outline') {
+      iconEl.setAttribute('name', 'heart');
+      iconEl.classList.remove('text-gray-400');
+      iconEl.classList.add('text-red-500');
+      
+      // Show toast notification
+      showToast('Шаблон добавлен в избранное');
+    } else {
+      iconEl.setAttribute('name', 'heart-outline');
+      iconEl.classList.remove('text-red-500');
+      iconEl.classList.add('text-gray-400');
+    }
+  }
+
+  // Buy template
+  function buyTemplate(buttonEl) {
+    const templateTitle = buttonEl.dataset.title;
+    const price = parseFloat(buttonEl.dataset.price) || 0;
+    
+    if (!walletConnected) {
+      showToast('Пожалуйста, подключите кошелек для оплаты', 'error');
+      return;
+    }
+    
+    if (tonBalance < price) {
+      showToast('Недостаточно средств на балансе', 'error');
+      return;
+    }
+    
+    // Confirm purchase
+    if (confirm(`Вы уверены, что хотите купить шаблон "${templateTitle}" за ${price} TON?`)) {
+      // Deduct balance
+      tonBalance -= price;
+      document.getElementById('walletBalance').innerText = tonBalance + ' TON';
+      
+      // Add to history
+      addToHistory('Куплен шаблон "' + templateTitle + '"', -price, 'pricetag-outline', 'purple');
+      
+      showToast('Шаблон успешно куплен!', 'success');
+      
+      // PuzzleBot API call to notify purchase
+      const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      if (tgChatId) {
+        fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=template_purchased&tg_chat_id=' + tgChatId +
+              '&title=' + encodeURIComponent(templateTitle) + '&price=' + price)
+          .catch(err => console.error('API Error:', err));
       }
+    }
+  }
 
-      // Проверка авторизации
-      async function checkAuth() {
-        try {
-          const { data: { user }, error } = await supabaseClient.auth.getUser();
-          if (error) throw error;
-          if (user) {
-            state.currentUser = user;
-            await loadUserProfile(user.id);
-          } else {
-            console.log('User not authenticated');
-            showLoginModal();
-          }
-        } catch (error) {
-          console.error('Error checking auth:', error);
-          showToast('Ошибка проверки авторизации', 'error');
-        }
+  // Show add template modal
+  function showAddTemplateModal() {
+    document.getElementById('addTemplateModal').classList.remove('hidden');
+  }
+
+  // Close add template modal
+  function closeAddTemplateModal() {
+    document.getElementById('addTemplateModal').classList.add('hidden');
+    // Reset form
+    document.getElementById('templateTitle').value = '';
+    document.getElementById('templateDescription').value = '';
+    document.getElementById('templatePrice').value = '';
+    document.getElementById('templateCategory').value = 'UI';
+    document.getElementById('templateFile').value = '';
+    document.getElementById('templateFileName').classList.add('hidden');
+  }
+
+  // Submit new template
+  function submitNewTemplate() {
+    const title = document.getElementById('templateTitle').value.trim();
+    const description = document.getElementById('templateDescription').value.trim();
+    const price = parseFloat(document.getElementById('templatePrice').value) || 0;
+    const category = document.getElementById('templateCategory').value;
+    const file = document.getElementById('templateFile').files[0];
+    
+    if (!title || !description || !price || !file) {
+      showToast('Пожалуйста, заполните все поля', 'error');
+      return;
+    }
+    
+    // Create template card
+    const container = document.createElement('div');
+    container.className = 'relative border rounded-lg p-4 mb-3 hover:shadow-md transition-shadow';
+    container.setAttribute('data-title', title);
+    container.setAttribute('data-price', price);
+    container.setAttribute('data-category', category);
+    container.setAttribute('data-rating', '0');
+    
+    container.innerHTML = `
+      <ion-icon name="heart-outline" class="absolute top-4 right-4 text-xl text-gray-400 cursor-pointer hover:text-red-500" onclick="toggleFavorite(this)"></ion-icon>
+      <div class="flex items-start">
+        <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+          <ion-icon name="time-outline" class="text-gray-600 text-2xl"></ion-icon>
+        </div>
+        <div class="flex-1">
+          <div class="font-medium">${title}</div>
+          <div class="text-sm text-gray-500 mt-1">${description.substring(0, 60)}${description.length > 60 ? '...' : ''}</div>
+        </div>
+      </div>
+      <div class="flex justify-between items-center mt-3 pt-3 border-t">
+        <div class="text-sm font-semibold text-orange-500">На модерации</div>
+        <button class="text-sm text-gray-500 cursor-not-allowed" disabled>Недоступно</button>
+      </div>
+    `;
+    
+    document.getElementById('tabContent-market').appendChild(container);
+    closeAddTemplateModal();
+    showToast('Шаблон отправлен на модерацию', 'success');
+    
+    // Scroll to new template
+    setTimeout(() => {
+      container.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+    
+    // PuzzleBot API call to notify new template
+    const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    if (tgChatId) {
+      fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=new_template&tg_chat_id=' + tgChatId +
+            '&title=' + encodeURIComponent(title) + '&price=' + price + '&category=' + category)
+        .catch(err => console.error('API Error:', err));
+    }
+  }
+
+  // Show add request modal
+  function showAddRequestModal() {
+    document.getElementById('addRequestModal').classList.remove('hidden');
+  }
+
+  // Close add request modal
+  function closeAddRequestModal() {
+    document.getElementById('addRequestModal').classList.add('hidden');
+    // Reset form
+    document.getElementById('requestTitle').value = '';
+    document.getElementById('requestDescription').value = '';
+    document.getElementById('requestBudget').value = '';
+    document.getElementById('requestDeadline').value = '7';
+  }
+
+  // Submit new request
+  function submitNewRequest() {
+    const title = document.getElementById('requestTitle').value.trim();
+    const description = document.getElementById('requestDescription').value.trim();
+    const budget = parseFloat(document.getElementById('requestBudget').value) || 0;
+    const deadline = document.getElementById('requestDeadline').value;
+    
+    if (!title || !description || !budget) {
+      showToast('Пожалуйста, заполните все обязательные поля', 'error');
+      return;
+    }
+    
+    // Create request item
+    const item = document.createElement('div');
+    item.className = 'border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer';
+    const newId = Date.now();
+    item.setAttribute('data-id', newId);
+    item.setAttribute('data-title', title);
+    item.setAttribute('data-budget', budget);
+    item.setAttribute('data-devname', '');
+    item.setAttribute('data-status', 'open');
+    item.onclick = () => openRequestChat(newId);
+    
+    item.innerHTML = `
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="font-medium">${title}</div>
+          <div class="text-sm text-gray-500 mt-1">Бюджет: ${budget} TON</div>
+        </div>
+        <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">Открыта</div>
+      </div>
+      <div class="flex items-center mt-3 pt-3 border-t">
+        <div class="text-sm text-gray-500">Нет откликов</div>
+      </div>
+      <div class="flex items-center mt-2 text-sm text-gray-500">
+        <ion-icon name="time-outline" class="mr-1"></ion-icon>
+        <span>Только что</span>
+      </div>
+    `;
+    
+    document.getElementById('customerRequests').appendChild(item);
+    closeAddRequestModal();
+    showToast('Заявка успешно опубликована', 'success');
+    
+    // Scroll to new request
+    setTimeout(() => {
+      item.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+    
+    // PuzzleBot API call to notify new request
+    const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    if (tgChatId) {
+      fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=new_request&tg_chat_id=' + tgChatId +
+            '&title=' + encodeURIComponent(title) + '&budget=' + budget + '&deadline=' + deadline)
+        .catch(err => console.error('API Error:', err));
+    }
+  }
+
+  // Respond to request (developer)
+  function respondToRequest(requestId) {
+    const reqElem = document.querySelector(`#developerRequests [data-id="${requestId}"]`);
+    if (!reqElem) return;
+    
+    const title = reqElem.dataset.title || 'Заявка';
+    const budget = reqElem.dataset.budget || '0';
+    
+    if (confirm(`Вы хотите откликнуться на заявку "${title}" с бюджетом ${budget} TON?`)) {
+      showToast('Ваш отклик отправлен заказчику', 'success');
+      
+      // Update UI
+      const button = reqElem.querySelector('button');
+      button.textContent = 'Отклик отправлен';
+      button.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+      button.classList.add('bg-gray-200', 'text-gray-600', 'cursor-not-allowed');
+      button.onclick = null;
+      
+      // PuzzleBot API call to notify response
+      const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      if (tgChatId) {
+        fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=request_response&tg_chat_id=' + tgChatId +
+              '&request_id=' + requestId + '&title=' + encodeURIComponent(title))
+          .catch(err => console.error('API Error:', err));
       }
+    }
+  }
 
-      // Загрузка профиля пользователя
-      async function loadUserProfile(userId) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .single();
-          if (error) throw error;
-          if (data) {
-            state.currentUser.profile = data;
-            updateProfileUI(data);
-            await loadUserWallet(userId);
-            if (data.role) {
-              state.currentRole = data.role;
-              updateRoleUI();
-            }
-            await loadUserStats(userId);
-          }
-        } catch (error) {
-          console.error('Error loading user profile:', error);
-          showToast('Ошибка загрузки профиля', 'error');
-        }
+  // Open request chat
+  function openRequestChat(id) {
+    currentChatRequestId = id;
+    const isDev = (currentRole === 'developer');
+    let reqElem;
+    
+    if (isDev) {
+      reqElem = document.querySelector(`#developerRequests [data-id="${id}"]`);
+    } else {
+      reqElem = document.querySelector(`#customerRequests [data-id="${id}"]`);
+    }
+    
+    if (!reqElem) return;
+    
+    const title = reqElem.dataset.title || 'Заявка';
+    const devName = reqElem.dataset.devname || '';
+    const status = reqElem.dataset.status || 'open';
+    
+    document.getElementById('chatRequestTitle').innerText = title;
+    
+    // Set action button based on role and status
+    const actionBtn = document.getElementById('chatRequestAction');
+    if (isDev) {
+      actionBtn.textContent = 'Предложить услуги';
+      actionBtn.onclick = () => respondToRequest(id);
+    } else {
+      if (status === 'open') {
+        actionBtn.textContent = 'Выбрать исполнителя';
+        actionBtn.onclick = () => selectDeveloper(id);
+      } else {
+        actionBtn.textContent = 'Завершить заказ';
+        actionBtn.onclick = () => completeRequest(id);
       }
-
-      // Загрузка кошелька пользователя
-      async function loadUserWallet(userId) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-          if (error) throw error;
-          if (data) {
-            state.walletConnected = true;
-            updateWalletUI(data);
-          }
-        } catch (error) {
-          console.error('Error loading wallet:', error);
-          showToast('Ошибка загрузки кошелька', 'error');
-        }
-      }
-
-      // Загрузка статистики пользователя
-      async function loadUserStats(userId) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('user_stats')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-          if (error) throw error;
-          if (data) {
-            updateUserStatsUI(data);
-          }
-        } catch (error) {
-          console.error('Error loading user stats:', error);
-        }
-      }
-
-      // Обновление UI профиля
-      function updateProfileUI(profile) {
-        if (profile.first_name) {
-          const name = `${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''}`;
-          document.getElementById('profileName').textContent = name;
-          document.getElementById('profileAvatar').textContent = profile.first_name[0].toUpperCase();
-        }
-        if (profile.username) {
-          document.getElementById('profileUsername').textContent = `@${profile.username}`;
-        }
-        if (profile.rating) {
-          updateRatingUI(profile.rating);
-        }
-      }
-
-      function updateUserStatsUI(stats) {
-        document.getElementById('completedOrders').textContent = stats.completed_orders || 0;
-        document.getElementById('earnedAmount').textContent = `${stats.earned_amount || 0} TON`;
-        document.getElementById('templatesSold').textContent = stats.templates_sold || 0;
-        document.getElementById('userRating').textContent = stats.rating ? stats.rating.toFixed(1) : 0;
-      }
-
-      function updateRatingUI(rating) {
-        const starsContainer = document.getElementById('ratingStars');
-        starsContainer.innerHTML = '';
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 >= 0.5;
-        for (let i = 0; i < fullStars; i++) {
-          const star = document.createElement('ion-icon');
-          star.setAttribute('name', 'star');
-          starsContainer.appendChild(star);
-        }
-        if (hasHalfStar) {
-          const halfStar = document.createElement('ion-icon');
-          halfStar.setAttribute('name', 'star-half');
-          starsContainer.appendChild(halfStar);
-        }
-        const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-        for (let i = 0; i < emptyStars; i++) {
-          const emptyStar = document.createElement('ion-icon');
-          emptyStar.setAttribute('name', 'star-outline');
-          starsContainer.appendChild(emptyStar);
-        }
-        document.getElementById('ratingText').textContent = `${rating.toFixed(1)} (${state.currentUser.profile.reviews_count || 0} отзывов)`;
-      }
-
-      function updateWalletUI(wallet) {
-        document.getElementById('walletAddress').textContent = wallet.address;
-        document.getElementById('walletBalance').textContent = `${wallet.balance} ${wallet.currency}`;
-        document.getElementById('connectWalletBtn').classList.add('hidden');
-        document.getElementById('walletInfo').classList.remove('hidden');
-      }
-
-      // Обновление UI выбора роли
-      function updateRoleUI() {
-        if (state.currentRole === 'customer') {
-          document.getElementById('roleCustBtn').classList.add('bg-blue-500', 'text-white');
-          document.getElementById('roleCustBtn').classList.remove('text-blue-500');
-          document.getElementById('roleDevBtn').classList.add('text-blue-500');
-          document.getElementById('roleDevBtn').classList.remove('bg-blue-500', 'text-white');
-        } else {
-          document.getElementById('roleDevBtn').classList.add('bg-blue-500', 'text-white');
-          document.getElementById('roleDevBtn').classList.remove('text-blue-500');
-          document.getElementById('roleCustBtn').classList.add('text-blue-500');
-          document.getElementById('roleCustBtn').classList.remove('bg-blue-500', 'text-white');
-        }
-        document.getElementById('addTemplateCard').classList.toggle('hidden', state.currentRole !== 'developer');
-        document.getElementById('customerRequests').classList.toggle('hidden', state.currentRole !== 'customer');
-        document.getElementById('developerRequests').classList.toggle('hidden', state.currentRole === 'customer');
-      }
-
-      async function loadInitialData() {
-        showLoading('Загрузка данных...');
-        try {
-          await Promise.all([ loadArticles(), loadTemplates(), loadRequests(), loadNotifications(), loadHistory() ]);
-        } catch (error) {
-          console.error('Error loading initial data:', error);
-          showToast('Ошибка загрузки данных', 'error');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      async function loadArticles() {
-        try {
-          const { data, error } = await supabaseClient.from('articles').select('*').order('created_at', { ascending: false });
-          if (error) throw error;
-          if (data) { state.articles = data; renderArticles(); }
-        } catch (error) {
-          console.error('Error loading articles:', error);
-          showToast('Ошибка загрузки статей', 'error');
-        }
-      }
-
-      function renderArticles() {
-        const articlesList = document.getElementById('articlesList');
-        articlesList.innerHTML = '';
-        if (state.articles.length === 0) {
-          articlesList.innerHTML = `
-            <div class="text-center py-8 text-gray-500">
-              <ion-icon name="document-text-outline" class="text-3xl mb-2"></ion-icon>
-              <p>Статьи не найдены</p>
-            </div>
-          `;
-          return;
-        }
-        state.articles.forEach(article => {
-          const articleEl = document.createElement('div');
-          articleEl.className = 'flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 smooth-transition';
-          articleEl.onclick = () => openArticle(article.id);
-          articleEl.innerHTML = `
-            <div class="flex items-start">
-              <div class="bg-blue-100 p-2 rounded-lg mr-3">
-                <ion-icon name="document-text-outline" class="text-blue-600 text-xl"></ion-icon>
-              </div>
-              <div>
-                <div class="font-medium">${article.title}</div>
-                <div class="text-xs text-gray-500 mt-1">${article.description}</div>
-                <div class="flex items-center mt-2 text-xs text-gray-400">
-                  <ion-icon name="time-outline" class="mr-1"></ion-icon>
-                  <span>${article.reading_time || 5} мин чтения</span>
-                </div>
-              </div>
-            </div>
-            <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>
-          `;
-          articlesList.appendChild(articleEl);
-        });
-      }
-
-      async function loadTemplates(filters = {}) {
-        try {
-          let query = supabaseClient.from('templates').select('*').eq('status', 'approved').order('created_at', { ascending: false });
-          if (filters.category && filters.category !== 'all') {
-            query = query.eq('category', filters.category);
-          }
-          if (filters.price && filters.price !== 'all') {
-            const [min, max] = filters.price.split('-');
-            if (max) { query = query.gte('price', parseFloat(min)).lte('price', parseFloat(max)); }
-            else { query = query.gte('price', parseFloat(min.replace('+', ''))); }
-          }
-          const { data, error } = await query;
-          if (error) throw error;
-          if (data) { state.templates = data; renderTemplates(); }
-        } catch (error) {
-          console.error('Error loading templates:', error);
-          showToast('Ошибка загрузки шаблонов', 'error');
-        }
-      }
-
-      function renderTemplates() {
-        const templatesList = document.getElementById('templatesList');
-        templatesList.innerHTML = '';
-        if (state.templates.length === 0) {
-          document.getElementById('noTemplatesMessage').classList.remove('hidden');
-          return;
-        }
-        document.getElementById('noTemplatesMessage').classList.add('hidden');
-        state.templates.forEach(template => {
-          const templateEl = document.createElement('div');
-          templateEl.className = 'relative border rounded-lg p-4 hover:shadow-md smooth-transition';
-          templateEl.innerHTML = `
-            <div class="flex items-start">
-              <div class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                <ion-icon name="cube-outline" class="text-purple-600 text-2xl"></ion-icon>
-              </div>
-              <div class="flex-1">
-                <div class="font-medium">${template.title}</div>
-                <div class="text-sm text-gray-500 mt-1">${template.description}</div>
-                ${template.rating > 0 ? `
-                  <div class="flex items-center mt-2">
-                    <div class="flex text-yellow-400 text-sm">
-                      ${renderStarsHTML(template.rating)}
-                    </div>
-                    <span class="text-xs text-gray-500 ml-1">${template.rating.toFixed(1)} (${template.reviews_count})</span>
-                  </div>
-                ` : ''}
-              </div>
-            </div>
-            <div class="flex justify-between items-center mt-3 pt-3 border-t">
-              <div>
-                <div class="text-sm font-semibold text-gray-700">${template.price} TON</div>
-                <div class="text-xs text-gray-500">${template.sales_count} продаж</div>
-              </div>
-              <button class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg smooth-transition">
-                Купить
-              </button>
-            </div>
-          `;
-          templatesList.appendChild(templateEl);
-        });
-      }
-
-      function renderStarsHTML(rating) {
-        let stars = '';
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 >= 0.5;
-        for (let i = 0; i < fullStars; i++) { stars += '<ion-icon name="star"></ion-icon>'; }
-        if (hasHalfStar) { stars += '<ion-icon name="star-half"></ion-icon>'; }
-        const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-        for (let i = 0; i < emptyStars; i++) { stars += '<ion-icon name="star-outline"></ion-icon>'; }
-        return stars;
-      }
-
-      async function loadRequests(filters = {}) {
-        if (state.currentRole === 'customer') { await loadCustomerRequests(filters); }
-        else { await loadDeveloperRequests(filters); }
-      }
-
-      async function loadCustomerRequests(filters = {}) {
-        if (!state.currentUser) return;
-        try {
-          let query = supabaseClient.from('requests').select('*').eq('customer_id', state.currentUser.id).order('created_at', { ascending: false });
-          if (filters.status && filters.status !== 'all') { query = query.eq('status', filters.status); }
-          const { data, error } = await query;
-          if (error) throw error;
-          if (data) { state.requests = data; renderCustomerRequests(); }
-        } catch (error) {
-          console.error('Error loading customer requests:', error);
-          showToast('Ошибка загрузки заявок', 'error');
-        }
-      }
-
-      function renderCustomerRequests() {
-        const requestsList = document.getElementById('customerRequestsList');
-        requestsList.innerHTML = '';
-        if (state.requests.length === 0) { document.getElementById('noCustomerRequests').classList.remove('hidden'); return; }
-        document.getElementById('noCustomerRequests').classList.add('hidden');
-        state.requests.forEach(request => {
-          const requestEl = document.createElement('div');
-          requestEl.className = 'border rounded-lg p-4 hover:shadow-md smooth-transition cursor-pointer';
-          requestEl.onclick = () => openRequestChat(request.id);
-          let statusBadge = '';
-          if (request.status === 'open') { statusBadge = 'bg-orange-100 text-orange-800'; }
-          else if (request.status === 'in_progress') { statusBadge = 'bg-blue-100 text-blue-800'; }
-          else if (request.status === 'completed') { statusBadge = 'bg-green-100 text-green-800'; }
-          else if (request.status === 'cancelled') { statusBadge = 'bg-gray-100 text-gray-800'; }
-          requestEl.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div>
-                <div class="font-medium">${request.title}</div>
-                <div class="text-sm text-gray-500 mt-1">Бюджет: ${request.budget} TON</div>
-              </div>
-              <div class="${statusBadge} text-xs px-2 py-1 rounded-full">${getStatusText(request.status)}</div>
-            </div>
-            ${request.developer_id ? `
-              <div class="flex items-center mt-3 pt-3 border-t">
-                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                  <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
-                </div>
-                <div class="text-sm text-gray-700">Исполнитель: ${request.developer_id}</div>
-              </div>
-            ` : `
-              <div class="flex items-center mt-3 pt-3 border-t">
-                <div class="text-sm text-gray-500">${request.responses_count || 0} откликов</div>
-              </div>
-            `}
-            <div class="flex items-center mt-2 text-sm text-gray-500">
-              <ion-icon name="time-outline" class="mr-1"></ion-icon>
-              <span>Обновлено ${formatDate(request.updated_at)}</span>
-            </div>
-          `;
-          requestsList.appendChild(requestEl);
-        });
-      }
-
-      async function loadDeveloperRequests(filters = {}) {
-        try {
-          let query = supabaseClient.from('requests').select('*, customers:users(*)').eq('status', 'open').order('created_at', { ascending: false });
-          if (filters.budget && filters.budget !== 'all') {
-            const [min, max] = filters.budget.split('-');
-            if (max) { query = query.gte('budget', parseFloat(min)).lte('budget', parseFloat(max)); }
-            else { query = query.gte('budget', parseFloat(min.replace('+', ''))); }
-          }
-          if (filters.deadline && filters.deadline !== 'all') {
-            const [min, max] = filters.deadline.split('-');
-            if (max) { query = query.gte('deadline', parseInt(min)).lte('deadline', parseInt(max)); }
-            else { query = query.gte('deadline', parseInt(min.replace('+', ''))); }
-          }
-          const { data, error } = await query;
-          if (error) throw error;
-          if (data) { state.requests = data; renderDeveloperRequests(); }
-        } catch (error) {
-          console.error('Error loading developer requests:', error);
-          showToast('Ошибка загрузки заявок', 'error');
-        }
-      }
-
-      function renderDeveloperRequests() {
-        const requestsList = document.getElementById('developerRequestsList');
-        requestsList.innerHTML = '';
-        if (state.requests.length === 0) { document.getElementById('noDeveloperRequests').classList.remove('hidden'); return; }
-        document.getElementById('noDeveloperRequests').classList.add('hidden');
-        state.requests.forEach(request => {
-          const requestEl = document.createElement('div');
-          requestEl.className = 'border rounded-lg p-4 hover:shadow-md smooth-transition cursor-pointer';
-          requestEl.onclick = () => openRequestChat(request.id);
-          const customer = request.customers;
-          requestEl.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div>
-                <div class="font-medium">${request.title}</div>
-                <div class="text-sm text-gray-500 mt-1">Бюджет: ${request.budget} TON</div>
-              </div>
-              <div class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">${getStatusText(request.status)}</div>
-            </div>
-            <div class="flex items-center mt-3 pt-3 border-t">
-              <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
-              </div>
-              <div class="text-sm text-gray-700">${customer.first_name} ${customer.last_name || ''}</div>
-            </div>
-            <div class="flex items-center mt-2 text-sm text-gray-500">
-              <ion-icon name="time-outline" class="mr-1"></ion-icon>
-              <span>Опубликовано ${formatDate(request.created_at)}</span>
-            </div>
-            <button class="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg smooth-transition">
-              Откликнуться
-            </button>
-          `;
-          requestsList.appendChild(requestEl);
-        });
-      }
-
-      function getStatusText(status) {
-        const statusTexts = { open: 'Открыта', in_progress: 'В работе', completed: 'Завершена', cancelled: 'Отменена' };
-        return statusTexts[status] || status;
-      }
-
-      function formatDate(dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now - date;
-        const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-        if (diffDays === 0) { return 'сегодня'; }
-        else if (diffDays === 1) { return 'вчера'; }
-        else if (diffDays < 7) { return `${diffDays} дня назад`; }
-        else { return date.toLocaleDateString('ru-RU'); }
-      }
-
-      async function loadNotifications() {
-        if (!state.currentUser) return;
-        try {
-          const { data, error } = await supabaseClient.from('notifications').select('*').eq('user_id', state.currentUser.id).eq('is_read', false).order('created_at', { ascending: false });
-          if (error) throw error;
-          if (data && data.length > 0) {
-            document.getElementById('notifDot').classList.remove('hidden');
-            renderNotifications(data);
-          }
-        } catch (error) {
-          console.error('Error loading notifications:', error);
-        }
-      }
-
-      function renderNotifications(notifications) {
-        const notificationsList = document.getElementById('notificationsList');
-        notificationsList.innerHTML = '';
-        notifications.forEach(notification => {
-          const notificationEl = document.createElement('div');
-          notificationEl.className = 'flex items-start p-2 rounded-lg hover:bg-gray-50 smooth-transition';
-          let iconName = 'information-circle-outline';
-          let iconColor = 'blue';
-          if (notification.type === 'request') { iconName = 'chatbubble-ellipses-outline'; iconColor = 'blue'; }
-          else if (notification.type === 'template') { iconName = 'checkmark-circle-outline'; iconColor = 'green'; }
-          else if (notification.type === 'payment') { iconName = 'cash-outline'; iconColor = 'green'; }
-          notificationEl.innerHTML = `
-            <ion-icon name="${iconName}" class="text-${iconColor}-500 text-lg mr-2 mt-0.5 flex-shrink-0"></ion-icon>
-            <div class="text-sm">${notification.message}</div>
-          `;
-          notificationsList.appendChild(notificationEl);
-        });
-      }
-
-      async function loadHistory() {
-        if (!state.currentUser) return;
-        try {
-          const { data, error } = await supabaseClient.from('transactions').select('*').eq('user_id', state.currentUser.id).order('created_at', { ascending: false }).range(0, state.historyPerPage - 1);
-          if (error) throw error;
-          if (data) { state.historyItems = data; renderHistory(); }
-        } catch (error) {
-          console.error('Error loading history:', error);
-          showToast('Ошибка загрузки истории', 'error');
-        }
-      }
-
-      async function loadMoreHistory() {
-        if (!state.currentUser) return;
-        showLoading('Загрузка дополнительных записей...');
-        try {
-          const nextPage = state.historyPage + 1;
-          const start = (nextPage - 1) * state.historyPerPage;
-          const end = nextPage * state.historyPerPage - 1;
-          const { data, error } = await supabaseClient.from('transactions').select('*').eq('user_id', state.currentUser.id).order('created_at', { ascending: false }).range(start, end);
-          if (error) throw error;
-          if (data && data.length > 0) { state.historyItems = [...state.historyItems, ...data]; state.historyPage = nextPage; renderHistory(); }
-          else { document.getElementById('loadMoreHistory').classList.add('hidden'); }
-        } catch (error) {
-          console.error('Error loading more history:', error);
-          showToast('Ошибка загрузки истории', 'error');
-        } finally { hideLoading(); }
-      }
-
-      function renderHistory() {
-        const historyList = document.getElementById('historyList');
-        historyList.innerHTML = '';
-        state.historyItems.forEach(item => {
-          const historyItem = document.createElement('li');
-          historyItem.className = 'flex justify-between items-start';
-          let iconName = 'cash-outline';
-          let iconColor = 'blue';
-          if (item.type === 'purchase') { iconName = 'pricetag-outline'; iconColor = 'purple'; }
-          else if (item.type === 'sale') { iconName = 'cash-outline'; iconColor = 'green'; }
-          else if (item.type === 'transfer') { iconName = 'swap-horizontal-outline'; iconColor = 'blue'; }
-          else if (item.type === 'withdrawal') { iconName = 'arrow-down-outline'; iconColor = 'red'; }
-          else if (item.type === 'deposit') { iconName = 'arrow-up-outline'; iconColor = 'green'; }
-          const amountEl = item.amount > 0 ? `<div class="text-green-500 font-medium">+${item.amount} ${item.currency}</div>` : `<div class="text-red-500 font-medium">${item.amount} ${item.currency}</div>`;
-          historyItem.innerHTML = `
-            <div class="flex items-start">
-              <div class="bg-${iconColor}-100 p-1 rounded mr-2">
-                <ion-icon name="${iconName}" class="text-${iconColor}-600"></ion-icon>
-              </div>
-              <div>
-                <div>${item.description}</div>
-                <div class="text-xs text-gray-400">${formatDate(item.created_at)}</div>
-              </div>
-            </div>
-            ${amountEl}
-          `;
-          historyList.appendChild(historyItem);
-        });
-        if (state.historyItems.length >= state.historyPerPage) { document.getElementById('loadMoreHistory').classList.remove('hidden'); }
-      }
-
-      async function openArticle(articleId) {
-        showLoading('Загрузка статьи...');
-        try {
-          const { data, error } = await supabaseClient.from('articles').select('*').eq('id', articleId).single();
-          if (error) throw error;
-          if (data) {
-            state.currentArticleId = articleId;
-            showToast(`Открыта статья: ${data.title}`, 'info');
-          }
-        } catch (error) {
-          console.error('Error opening article:', error);
-          showToast('Ошибка загрузки статьи', 'error');
-        } finally { hideLoading(); }
-      }
-
-      async function openRequestChat(requestId) {
-        showLoading('Загрузка чата...');
-        try {
-          const { data: requestData, error: requestError } = await supabaseClient.from('requests').select('*, customers:users(*), developers:users(*)').eq('id', requestId).single();
-          if (requestError) throw requestError;
-          if (requestData) {
-            state.currentRequestId = requestId;
-            document.getElementById('chatRequestTitle').textContent = requestData.title;
-            const actionBtn = document.getElementById('chatRequestActionBtn');
-            if (state.currentRole === 'developer') {
-              actionBtn.textContent = 'Предложить услуги';
-              actionBtn.onclick = () => respondToRequest(requestId);
-            } else {
-              if (requestData.status === 'open') {
-                actionBtn.textContent = 'Выбрать исполнителя';
-                actionBtn.onclick = () => showToast('Функция выбора исполнителя в разработке', 'info');
-              } else if (requestData.status === 'in_progress') {
-                actionBtn.textContent = 'Завершить заказ';
-                actionBtn.onclick = () => completeRequest(requestId);
-              } else {
-                actionBtn.textContent = 'Оставить отзыв';
-                actionBtn.onclick = () => showToast('Функция отзыва в разработке', 'info');
-              }
-            }
-            const { data: messagesData, error: messagesError } = await supabaseClient.from('chat_messages').select('*, sender:users(*)').eq('request_id', requestId).order('created_at', { ascending: true });
-            if (messagesError) throw messagesError;
-            if (messagesData) { state.chatMessages = messagesData; renderChatMessages(); }
-            document.getElementById('chatOverlay').classList.remove('hidden');
-          }
-        } catch (error) {
-          console.error('Error opening chat:', error);
-          showToast('Ошибка загрузки чата', 'error');
-        } finally { hideLoading(); }
-      }
-
-      async function respondToRequest(requestId) {
-        showLoading('Отправка отклика...');
-        try {
-          const { data, error } = await supabaseClient.from('request_responses').insert([{ request_id: requestId, developer_id: state.currentUser.id, message: 'Я готов выполнить эту работу', price: state.requests.find(r => r.id === requestId).budget }]);
-          if (error) throw error;
-          if (data) { showToast('Ваш отклик отправлен', 'success'); await loadRequests(); }
-        } catch (error) {
-          console.error('Error responding to request:', error);
-          showToast('Ошибка отправки отклика', 'error');
-        } finally { hideLoading(); }
-      }
-
-      async function completeRequest(requestId) {
-        showConfirmation(
-          'Завершение заказа',
-          'Вы уверены, что хотите завершить этот заказ? После подтверждения средства будут переведены разработчику.',
-          async () => {
-            showLoading('Завершение заказа...');
-            try {
-              const { data, error } = await supabaseClient.from('requests').update({ status: 'completed' }).eq('id', requestId);
-              if (error) throw error;
-              if (data) { showToast('Заказ успешно завершен', 'success'); await loadRequests(); closeChat(); }
-            } catch (error) {
-              console.error('Error completing request:', error);
-              showToast('Ошибка завершения заказа', 'error');
-            } finally { hideLoading(); }
-          }
+    }
+    
+    // Example conversation based on status
+    chatMessages = [];
+    if (status === 'open') {
+      if (isDev) {
+        chatMessages.push(
+          { sender: 'developer', text: 'Здравствуйте, я хотел бы взяться за этот проект.' },
+          { sender: 'developer', text: 'Мой опыт: 5 лет разработки ботов на Telegram API.' },
+          { sender: 'developer', text: 'Могу выполнить работу за 7 дней.' }
+        );
+      } else {
+        chatMessages.push(
+          { sender: 'developer', text: 'Здравствуйте, я хотел бы взяться за этот проект.' },
+          { sender: 'customer', text: 'Здравствуйте! Отлично, какие сроки выполнения?' },
+          { sender: 'developer', text: 'Могу выполнить работу за одну неделю.' },
+          { sender: 'customer', text: 'А какие технологии вы планируете использовать?' }
         );
       }
+    } else {
+      chatMessages.push(
+        { sender: 'developer', text: 'Приступил к работе над проектом.' },
+        { sender: 'customer', text: 'Отлично, буду ждать обновлений.' },
+        { sender: 'developer', text: 'Выполнил базовый функционал, можете проверить.' },
+        { sender: 'developer', text: 'Отправил вам тестовую ссылку в личные сообщения.' },
+        { sender: 'customer', text: 'Проверил, выглядит хорошо. Есть несколько замечаний...' }
+      );
+    }
+    
+    renderChatMessages();
+    document.getElementById('chatOverlay').classList.remove('hidden');
+  }
 
-      function renderChatMessages() {
-        const chatMessages = document.getElementById('chatMessages');
-        chatMessages.innerHTML = '';
-        state.chatMessages.forEach(msg => {
-          const isCurrentUser = msg.sender_id === state.currentUser.id;
-          const bubble = document.createElement('div');
-          bubble.className = 'flex ' + (isCurrentUser ? 'justify-end' : 'justify-start');
-          const bubbleInner = document.createElement('div');
-          bubbleInner.className = 'max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ' + (isCurrentUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none');
-          if (!isCurrentUser) {
-            const senderName = document.createElement('div');
-            senderName.className = 'text-xs font-medium mb-1';
-            senderName.textContent = msg.sender?.first_name || 'Аноним';
-            bubbleInner.appendChild(senderName);
-          }
-          const messageContent = document.createElement('div');
-          messageContent.textContent = msg.message;
-          bubbleInner.appendChild(messageContent);
-          const timestamp = document.createElement('div');
-          timestamp.className = 'text-xs mt-1 text-right ' + (isCurrentUser ? 'text-blue-100' : 'text-gray-500');
-          timestamp.textContent = formatTime(msg.created_at);
-          bubbleInner.appendChild(timestamp);
-          bubble.appendChild(bubbleInner);
-          chatMessages.appendChild(bubble);
-        });
-        setTimeout(() => { chatMessages.scrollTop = chatMessages.scrollHeight; }, 10);
-      }
-
-      function formatTime(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-      }
-
-      function closeChat() {
-        document.getElementById('chatOverlay').classList.add('hidden');
-        state.currentRequestId = null;
-        state.chatMessages = [];
-      }
-
-      async function sendMessage() {
-        const text = document.getElementById('chatInput').value.trim();
-        if (!text || !state.currentRequestId || !state.currentUser) return;
-        showLoading('Отправка сообщения...');
-        try {
-          const { data, error } = await supabaseClient.from('chat_messages').insert([{ request_id: state.currentRequestId, sender_id: state.currentUser.id, message: text }]);
-          if (error) throw error;
-          if (data) { document.getElementById('chatInput').value = ''; await openRequestChat(state.currentRequestId); }
-        } catch (error) {
-          console.error('Error sending message:', error);
-          showToast('Ошибка отправки сообщения', 'error');
-        } finally { hideLoading(); }
-      }
-
-      async function connectWallet() {
-        if (!state.currentUser) return;
-        showConfirmation(
-          'Подключение кошелька',
-          'Вы хотите подключить TON кошелек к вашему аккаунту?',
-          async () => {
-            showLoading('Подключение кошелька...');
-            try {
-              const dummyAddress = 'EQC' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-              const { data, error } = await supabaseClient.from('wallets').upsert([{ user_id: state.currentUser.id, address: dummyAddress, balance: 100, currency: 'TON' }], { onConflict: 'user_id' });
-              if (error) throw error;
-              if (data) {
-                state.walletConnected = true;
-                updateWalletUI({ address: dummyAddress, balance: 100, currency: 'TON' });
-                await supabaseClient.from('transactions').insert([{ user_id: state.currentUser.id, amount: 100, currency: 'TON', type: 'deposit', description: 'Пополнение баланса' }]);
-                showToast('TON кошелек успешно подключен', 'success');
-              }
-            } catch (error) {
-              console.error('Error connecting wallet:', error);
-              showToast('Ошибка подключения кошелька', 'error');
-            } finally { hideLoading(); }
-          }
-        );
-      }
-
-      async function disconnectWallet() {
-        showConfirmation(
-          'Отключение кошелька',
-          'Вы уверены, что хотите отключить TON кошелек?',
-          async () => {
-            showLoading('Отключение кошелька...');
-            try {
-              document.getElementById('connectWalletBtn').classList.remove('hidden');
-              document.getElementById('walletInfo').classList.add('hidden');
-              state.walletConnected = false;
-              showToast('TON кошелек отключен', 'info');
-            } catch (error) {
-              console.error('Error disconnecting wallet:', error);
-              showToast('Ошибка отключения кошелька', 'error');
-            } finally { hideLoading(); }
-          }
-        );
-      }
-
-      function showAddRequestModal() {
-        document.getElementById('requestTitle').value = '';
-        document.getElementById('requestDescription').value = '';
-        document.getElementById('requestBudget').value = '';
-        document.getElementById('requestDeadline').value = '7';
-        document.getElementById('customDeadline').value = '';
-        document.getElementById('customDeadlineContainer').classList.add('hidden');
-        document.getElementById('requestFiles').value = '';
-        document.getElementById('requestFilesNames').classList.add('hidden');
-        document.getElementById('requestFilesNames').textContent = '';
-        state.selectedFiles = [];
-        document.getElementById('requestTitleError').classList.add('hidden');
-        document.getElementById('requestDescError').classList.add('hidden');
-        document.getElementById('requestBudgetError').classList.add('hidden');
-        document.getElementById('customDeadlineError').classList.add('hidden');
-        document.getElementById('requestFilesError').classList.add('hidden');
-        document.getElementById('addRequestModal').classList.remove('hidden');
-      }
-
-      function closeAddRequestModal() {
-        document.getElementById('addRequestModal').classList.add('hidden');
-      }
-
-      function handleRequestFileUpload(event) {
-        const files = event.target.files;
-        if (files.length > 3) {
-          document.getElementById('requestFilesError').classList.remove('hidden');
-          document.getElementById('requestFilesError').textContent = 'Можно загрузить не более 3 файлов';
-          return;
-        }
-        state.selectedFiles = Array.from(files);
-        const filesNames = state.selectedFiles.map(file => file.name).join(', ');
-        if (filesNames) {
-          document.getElementById('requestFilesNames').textContent = filesNames;
-          document.getElementById('requestFilesNames').classList.remove('hidden');
-          document.getElementById('requestFilesError').classList.add('hidden');
-        } else {
-          document.getElementById('requestFilesNames').classList.add('hidden');
-        }
-      }
-
-      async function submitNewRequest() {
-        const title = document.getElementById('requestTitle').value.trim();
-        const description = document.getElementById('requestDescription').value.trim();
-        const budget = parseFloat(document.getElementById('requestBudget').value) || 0;
-        let deadline = document.getElementById('requestDeadline').value;
-        if (deadline === 'custom') { deadline = document.getElementById('customDeadline').value; }
-        let isValid = true;
-        if (!title) { document.getElementById('requestTitleError').classList.remove('hidden'); isValid = false; }
-        else { document.getElementById('requestTitleError').classList.add('hidden'); }
-        if (!description) { document.getElementById('requestDescError').classList.remove('hidden'); isValid = false; }
-        else { document.getElementById('requestDescError').classList.add('hidden'); }
-        if (!budget || budget <= 0) { document.getElementById('requestBudgetError').classList.remove('hidden'); isValid = false; }
-        else { document.getElementById('requestBudgetError').classList.add('hidden'); }
-        if (deadline === 'custom') {
-          const customDeadline = document.getElementById('customDeadline').value;
-          if (!customDeadline || customDeadline <= 0) { document.getElementById('customDeadlineError').classList.remove('hidden'); isValid = false; }
-          else { document.getElementById('customDeadlineError').classList.add('hidden'); }
-        }
-        if (!isValid) { showToast('Пожалуйста, заполните все обязательные поля', 'error'); return; }
-        showLoading('Создание заявки...');
-        try {
-          const { data, error } = await supabaseClient.from('requests').insert([{ customer_id: state.currentUser.id, title, description, budget, deadline, status: 'open' }]).select();
-          if (error) throw error;
-          if (data) { showToast('Заявка успешно создана', 'success'); closeAddRequestModal(); await loadRequests(); }
-        } catch (error) {
-          console.error('Error creating request:', error);
-          showToast('Ошибка при создании заявки', 'error');
-        } finally { hideLoading(); }
-      }
-
-      function showAddTemplateModal() {
-        document.getElementById('templateTitle').value = '';
-        document.getElementById('templateDescription').value = '';
-        document.getElementById('templatePrice').value = '';
-        document.getElementById('templateCategory').value = 'UI';
-        document.getElementById('templateFile').value = '';
-        document.getElementById('templateFileName').classList.add('hidden');
-        document.getElementById('templateFileName').textContent = '';
-        document.getElementById('templatePreview').value = '';
-        document.getElementById('templatePreviewName').classList.add('hidden');
-        document.getElementById('templatePreviewName').textContent = '';
-        state.selectedTemplateFile = null;
-        state.selectedTemplatePreview = null;
-        document.getElementById('templateTitleError').classList.add('hidden');
-        document.getElementById('templateDescError').classList.add('hidden');
-        document.getElementById('templatePriceError').classList.add('hidden');
-        document.getElementById('templateFileError').classList.add('hidden');
-        document.getElementById('addTemplateModal').classList.remove('hidden');
-      }
-
-      function closeAddTemplateModal() {
-        document.getElementById('addTemplateModal').classList.add('hidden');
-      }
-
-      function handleTemplateFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        if (!file.name.endsWith('.zip')) {
-          document.getElementById('templateFileError').classList.remove('hidden');
-          document.getElementById('templateFileError').textContent = 'Файл должен быть в формате ZIP';
-          return;
-        }
-        state.selectedTemplateFile = file;
-        document.getElementById('templateFileName').textContent = file.name;
-        document.getElementById('templateFileName').classList.remove('hidden');
-        document.getElementById('templateFileError').classList.add('hidden');
-      }
-
-      function handleTemplatePreviewUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/')) { showToast('Пожалуйста, загрузите изображение', 'error'); return; }
-        state.selectedTemplatePreview = file;
-        document.getElementById('templatePreviewName').textContent = file.name;
-        document.getElementById('templatePreviewName').classList.remove('hidden');
-      }
-
-      async function submitNewTemplate() {
-        const title = document.getElementById('templateTitle').value.trim();
-        const description = document.getElementById('templateDescription').value.trim();
-        const price = parseFloat(document.getElementById('templatePrice').value) || 0;
-        const category = document.getElementById('templateCategory').value;
-        let isValid = true;
-        if (!title) { document.getElementById('templateTitleError').classList.remove('hidden'); isValid = false; }
-        else { document.getElementById('templateTitleError').classList.add('hidden'); }
-        if (!description) { document.getElementById('templateDescError').classList.remove('hidden'); isValid = false; }
-        else { document.getElementById('templateDescError').classList.add('hidden'); }
-        if (!price || price <= 0) { document.getElementById('templatePriceError').classList.remove('hidden'); isValid = false; }
-        else { document.getElementById('templatePriceError').classList.add('hidden'); }
-        if (!state.selectedTemplateFile) { document.getElementById('templateFileError').classList.remove('hidden'); isValid = false; }
-        else { document.getElementById('templateFileError').classList.add('hidden'); }
-        if (!isValid) { showToast('Пожалуйста, заполните все обязательные поля', 'error'); return; }
-        showLoading('Отправка шаблона...');
-        try {
-          const { data, error } = await supabaseClient.from('templates').insert([{ developer_id: state.currentUser.id, title, description, price, category, status: 'pending' }]).select();
-          if (error) throw error;
-          if (data) { showToast('Шаблон успешно отправлен на модерацию', 'success'); closeAddTemplateModal(); await loadTemplates(); }
-        } catch (error) {
-          console.error('Error submitting template:', error);
-          showToast('Ошибка при отправке шаблона', 'error');
-        } finally { hideLoading(); }
-      }
-
-      function switchTab(tab) {
-        if (tab === state.currentTab) return;
-        document.getElementById(`tabContent-${state.currentTab}`).classList.add('hidden');
-        const currentTabIcon = document.getElementById(`tab-icon-${state.currentTab}`);
-        const currentTabLabel = document.querySelector(`#tab-${state.currentTab} span`);
-        if (currentTabIcon && currentTabLabel) {
-          currentTabIcon.setAttribute('name', tabIcons[state.currentTab].outline);
-          currentTabIcon.classList.remove('text-blue-600');
-          currentTabIcon.classList.add('text-gray-600');
-          currentTabLabel.classList.remove('text-blue-600');
-          currentTabLabel.classList.add('text-gray-600');
-        }
-        document.getElementById(`tabContent-${tab}`).classList.remove('hidden');
-        state.currentTab = tab;
-        document.getElementById('topBarTitle').textContent = tabTitles[tab] || '';
-        const newTabIcon = document.getElementById(`tab-icon-${tab}`);
-        const newTabLabel = document.querySelector(`#tab-${tab} span`);
-        if (newTabIcon && newTabLabel) {
-          newTabIcon.setAttribute('name', tabIcons[tab].filled);
-          newTabIcon.classList.remove('text-gray-600');
-          newTabIcon.classList.add('text-blue-600');
-          newTabLabel.classList.remove('text-gray-600');
-          newTabLabel.classList.add('text-blue-600');
-        }
-        if (tab === 'articles' && state.articles.length === 0) { loadArticles(); }
-        else if (tab === 'market' && state.templates.length === 0) { loadTemplates(); }
-        else if (tab === 'requests') { loadRequests(); }
-        else if (tab === 'profile') { loadHistory(); }
-      }
-
-      async function switchRole(role) {
-        if (role === state.currentRole) return;
-        showConfirmation(
-          'Смена роли',
-          `Вы хотите переключиться в режим ${role === 'developer' ? 'разработчика' : 'заказчика'}?`,
-          async () => {
-            showLoading('Смена роли...');
-            try {
-              const { error } = await supabaseClient.from('users').update({ role }).eq('id', state.currentUser.id);
-              if (error) throw error;
-              state.currentRole = role;
-              updateRoleUI();
-              await loadRequests();
-              showToast(`Режим ${role === 'developer' ? 'разработчика' : 'заказчика'} активирован`, 'success');
-            } catch (error) {
-              console.error('Error switching role:', error);
-              showToast('Ошибка при смене роли', 'error');
-            } finally { hideLoading(); }
-          }
-        );
-      }
-
-      function toggleNotifications() {
-        document.getElementById('notifPanel').classList.toggle('hidden');
-        if (!document.getElementById('notifPanel').classList.contains('hidden')) {
-          document.getElementById('notifDot').classList.add('hidden');
-          if (state.currentUser) {
-            supabaseClient.from('notifications').update({ is_read: true }).eq('user_id', state.currentUser.id).eq('is_read', false);
-          }
-        }
-      }
-
-      async function markAllAsRead() {
-        if (!state.currentUser) return;
-        showLoading('Обновление уведомлений...');
-        try {
-          const { error } = await supabaseClient.from('notifications').update({ is_read: true }).eq('user_id', state.currentUser.id).eq('is_read', false);
-          if (error) throw error;
-          showToast('Все уведомления помечены как прочитанные', 'success');
-          document.getElementById('notifPanel').classList.add('hidden');
-          document.getElementById('notifDot').classList.add('hidden');
-        } catch (error) {
-          console.error('Error marking notifications as read:', error);
-          showToast('Ошибка при обновлении уведомлений', 'error');
-        } finally { hideLoading(); }
-      }
-
-      function initTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        state.theme = savedTheme ? savedTheme : 'system';
-        setTheme(state.theme);
-      }
-
-      function setTheme(theme) {
-        state.theme = theme;
-        localStorage.setItem('theme', theme);
-        if (theme === 'dark') { document.documentElement.classList.add('dark'); }
-        else if (theme === 'light') { document.documentElement.classList.remove('dark'); }
-        else {
-          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { document.documentElement.classList.add('dark'); }
-          else { document.documentElement.classList.remove('dark'); }
-        }
-        document.getElementById('themeLight').classList.toggle('border-blue-500', theme === 'light');
-        document.getElementById('themeLight').classList.toggle('bg-blue-50', theme === 'light');
-        document.getElementById('themeDark').classList.toggle('border-blue-500', theme === 'dark');
-        document.getElementById('themeDark').classList.toggle('bg-blue-50', theme === 'dark');
-        document.getElementById('themeSystem').classList.toggle('border-blue-500', theme === 'system');
-        document.getElementById('themeSystem').classList.toggle('bg-blue-50', theme === 'system');
-      }
-
-      function initLanguage() {
-        const savedLanguage = localStorage.getItem('language');
-        if (savedLanguage) {
-          state.language = savedLanguage;
-          document.getElementById('languageSelect').value = savedLanguage;
-        }
-      }
-
-      function initNotifications() {
-        const savedNotifications = localStorage.getItem('notifications');
-        if (savedNotifications) {
-          state.notifications = JSON.parse(savedNotifications);
-          document.getElementById('notifMessages').checked = state.notifications.messages;
-          document.getElementById('notifRequests').checked = state.notifications.requests;
-          document.getElementById('notifNews').checked = state.notifications.news;
-        }
-      }
-
-      function showSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
-      function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
-      async function saveSettings() {
-        const language = document.getElementById('languageSelect').value;
-        const notifications = {
-          messages: document.getElementById('notifMessages').checked,
-          requests: document.getElementById('notifRequests').checked,
-          news: document.getElementById('notifNews').checked
-        };
-        state.language = language;
-        state.notifications = notifications;
-        localStorage.setItem('language', language);
-        localStorage.setItem('notifications', JSON.stringify(notifications));
-        showToast('Настройки сохранены', 'success');
-        closeSettingsModal();
-      }
-
-      function showHelpModal() { document.getElementById('helpModal').classList.remove('hidden'); }
-      function closeHelpModal() { document.getElementById('helpModal').classList.add('hidden'); }
-      function showAboutModal() { document.getElementById('aboutModal').classList.remove('hidden'); }
-      function closeAboutModal() { document.getElementById('aboutModal').classList.add('hidden'); }
-
-      function showConfirmation(title, message, confirmCallback) {
-        document.getElementById('confirmationTitle').textContent = title;
-        document.getElementById('confirmationMessage').textContent = message;
-        document.getElementById('confirmationModal').classList.remove('hidden');
-        const confirmBtn = document.getElementById('confirmActionBtn');
-        confirmBtn.onclick = () => {
-          document.getElementById('confirmationModal').classList.add('hidden');
-          if (confirmCallback) confirmCallback();
-        };
-      }
-
-      function toggleTemplateFilters() { document.getElementById('marketFilters').classList.toggle('hidden'); }
-      function applyTemplateFilters() {
-        const category = document.getElementById('templateCategoryFilter').value;
-        const price = document.getElementById('templatePriceFilter').value;
-        const filters = {};
-        if (category !== 'all') filters.category = category;
-        if (price !== 'all') filters.price = price;
-        loadTemplates(filters);
-        document.getElementById('marketFilters').classList.add('hidden');
-      }
-      function resetTemplateFilters() {
-        document.getElementById('templateCategoryFilter').value = 'all';
-        document.getElementById('templatePriceFilter').value = 'all';
-        loadTemplates();
-        document.getElementById('marketFilters').classList.add('hidden');
-      }
-      function toggleRequestFilters() { document.getElementById('requestFilters').classList.toggle('hidden'); }
-      function applyRequestFilters() {
-        const budget = document.getElementById('requestBudgetFilter').value;
-        const deadline = document.getElementById('requestDeadlineFilter').value;
-        const filters = {};
-        if (budget !== 'all') filters.budget = budget;
-        if (deadline !== 'all') filters.deadline = deadline;
-        loadRequests(filters);
-        document.getElementById('requestFilters').classList.add('hidden');
-      }
-      function resetRequestFilters() {
-        document.getElementById('requestBudgetFilter').value = 'all';
-        document.getElementById('requestDeadlineFilter').value = 'all';
-        loadRequests();
-        document.getElementById('requestFilters').classList.add('hidden');
-      }
-
-      function showLoading(message = 'Загрузка...') {
-        document.getElementById('loadingMessage').textContent = message;
-        document.getElementById('loadingOverlay').classList.remove('hidden');
-        state.isLoading = true;
-      }
-      function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); state.isLoading = false; }
-
-      function showToast(message, type = 'info') {
-        const colors = { info: 'bg-blue-500', success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500' };
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-16 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded-lg shadow-lg ${colors[type]} fade-in flex items-center`;
-        toast.innerHTML = `
-          <ion-icon name="${type === 'success' ? 'checkmark-circle' : type === 'error' ? 'alert-circle' : type === 'warning' ? 'warning' : 'information-circle'}" class="mr-2"></ion-icon>
-          <span>${message}</span>
+  // Select developer for request (customer)
+  function selectDeveloper(requestId) {
+    const reqElem = document.querySelector(`#customerRequests [data-id="${requestId}"]`);
+    if (!reqElem) return;
+    
+    if (confirm('Вы уверены, что хотите выбрать этого исполнителя для заявки?')) {
+      // Update request status
+      reqElem.dataset.status = 'in-progress';
+      reqElem.dataset.devname = 'Иван Д.';
+      
+      // Update UI
+      const statusBadge = reqElem.querySelector('.bg-orange-100');
+      statusBadge.classList.remove('bg-orange-100', 'text-orange-800');
+      statusBadge.classList.add('bg-blue-100', 'text-blue-800');
+      statusBadge.textContent = 'В работе';
+      
+      const responsesText = reqElem.querySelector('.text-sm.text-gray-500');
+      if (responsesText) {
+        responsesText.parentElement.innerHTML = `
+          <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+            <ion-icon name="person-outline" class="text-gray-600"></ion-icon>
+          </div>
+          <div class="text-sm text-gray-700">Исполнитель: Иван Д.</div>
         `;
-        document.body.appendChild(toast);
-        setTimeout(() => { toast.classList.add('opacity-0', 'transition-opacity', 'duration-300'); setTimeout(() => toast.remove(), 300); }, 3000);
       }
-
-      // --- Модальные окна для авторизации ---
-      function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
-      function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
-      function showRegisterModal() { document.getElementById('registerModal').classList.remove('hidden'); }
-      function closeRegisterModal() { document.getElementById('registerModal').classList.add('hidden'); }
-
-      async function handleRegister(email, password) {
-        if (!email || !password) { showToast("Email и пароль обязательны", "error"); return; }
-        const { data, error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) { console.error("Registration error:", error); showToast("Не удалось зарегистрировать: " + error.message, "error"); }
-        else { showToast("Проверьте почту для подтверждения регистрации", "success"); closeRegisterModal(); showLoginModal(); }
+      
+      // Update chat action button
+      document.getElementById('chatRequestAction').textContent = 'Завершить заказ';
+      document.getElementById('chatRequestAction').onclick = () => completeRequest(requestId);
+      
+      showToast('Исполнитель выбран, заявка переведена в работу', 'success');
+      
+      // PuzzleBot API call to notify developer selection
+      const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      if (tgChatId) {
+        fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=developer_selected&tg_chat_id=' + tgChatId +
+              '&request_id=' + requestId)
+          .catch(err => console.error('API Error:', err));
       }
+    }
+  }
 
-      async function handleLogin(email, password) {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { console.error("Login error:", error); showToast("Неверный email или пароль", "error"); }
-        else { showToast("Вы успешно вошли", "success"); state.currentUser = data.user; closeLoginModal(); await loadUserProfile(state.currentUser.id); }
+  // Complete request (customer)
+  function completeRequest(requestId) {
+    const reqElem = document.querySelector(`#customerRequests [data-id="${requestId}"]`);
+    if (!reqElem) return;
+    
+    if (confirm('Вы уверены, что хотите завершить этот заказ и перевести оплату исполнителю?')) {
+      const budget = parseFloat(reqElem.dataset.budget) || 0;
+      
+      // Update request status
+      reqElem.dataset.status = 'completed';
+      
+      // Update UI
+      const statusBadge = reqElem.querySelector('.bg-blue-100');
+      statusBadge.classList.remove('bg-blue-100', 'text-blue-800');
+      statusBadge.classList.add('bg-green-100', 'text-green-800');
+      statusBadge.textContent = 'Завершено';
+      
+      // Update chat action button
+      document.getElementById('chatRequestAction').textContent = 'Оставить отзыв';
+      document.getElementById('chatRequestAction').onclick = () => leaveReview(requestId);
+      
+      // Add to history
+      addToHistory('Завершен заказ "' + reqElem.dataset.title + '"', budget, 'checkmark-circle-outline', 'blue');
+      
+      showToast('Заказ успешно завершен, средства переведены исполнителю', 'success');
+      
+      // PuzzleBot API call to notify completion
+      const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      if (tgChatId) {
+        fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=request_completed&tg_chat_id=' + tgChatId +
+              '&request_id=' + requestId + '&budget=' + budget)
+          .catch(err => console.error('API Error:', err));
       }
+    }
+  }
 
-      // Обработка событий аутентификации и других кликов
-      function setupEventListeners() {
-        // Вкладки
-        document.getElementById('tab-articles').addEventListener('click', () => switchTab('articles'));
-        document.getElementById('tab-market').addEventListener('click', () => switchTab('market'));
-        document.getElementById('tab-requests').addEventListener('click', () => switchTab('requests'));
-        document.getElementById('tab-profile').addEventListener('click', () => switchTab('profile'));
-        // Переключение ролей
-        document.getElementById('roleCustBtn').addEventListener('click', () => switchRole('customer'));
-        document.getElementById('roleDevBtn').addEventListener('click', () => switchRole('developer'));
-        // Кошелек
-        document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
-        document.getElementById('disconnectWalletBtn').addEventListener('click', disconnectWallet);
-        // Уведомления
-        document.getElementById('notifIconWrapper').addEventListener('click', toggleNotifications);
-        document.getElementById('markAllAsReadBtn').addEventListener('click', markAllAsRead);
-        // Заявки
-        document.getElementById('newRequestBtn').addEventListener('click', showAddRequestModal);
-        document.getElementById('createRequestBtn').addEventListener('click', showAddRequestModal);
-        document.getElementById('refreshRequestsBtn').addEventListener('click', () => loadRequests());
-        // Модальные окна заявок
-        document.getElementById('closeRequestModalBtn').addEventListener('click', closeAddRequestModal);
-        document.getElementById('cancelRequestBtn').addEventListener('click', closeAddRequestModal);
-        document.getElementById('submitRequestBtn').addEventListener('click', submitNewRequest);
-        document.getElementById('requestDeadline').addEventListener('change', function() {
-          document.getElementById('customDeadlineContainer').classList.toggle('hidden', this.value !== 'custom');
-        });
-        document.getElementById('fileUploadArea').addEventListener('click', () => { document.getElementById('requestFiles').click(); });
-        document.getElementById('requestFiles').addEventListener('change', handleRequestFileUpload);
-        // Шаблоны
-        document.getElementById('addTemplateCard').addEventListener('click', showAddTemplateModal);
-        document.getElementById('filterTemplatesBtn').addEventListener('click', toggleTemplateFilters);
-        document.getElementById('applyFiltersBtn').addEventListener('click', applyTemplateFilters);
-        document.getElementById('resetFiltersBtn').addEventListener('click', resetTemplateFilters);
-        document.getElementById('resetFiltersBtn2').addEventListener('click', resetTemplateFilters);
-        // Модальное окно шаблона
-        document.getElementById('closeTemplateModalBtn').addEventListener('click', closeAddTemplateModal);
-        document.getElementById('cancelTemplateBtn').addEventListener('click', closeAddTemplateModal);
-        document.getElementById('submitTemplateBtn').addEventListener('click', submitNewTemplate);
-        document.getElementById('templateFileUpload').addEventListener('click', () => { document.getElementById('templateFile').click(); });
-        document.getElementById('templateFile').addEventListener('change', handleTemplateFileUpload);
-        document.getElementById('templatePreviewUpload').addEventListener('click', () => { document.getElementById('templatePreview').click(); });
-        document.getElementById('templatePreview').addEventListener('change', handleTemplatePreviewUpload);
-        // Фильтры заявок
-        document.getElementById('filterRequestsBtn').addEventListener('click', toggleRequestFilters);
-        document.getElementById('applyRequestFiltersBtn').addEventListener('click', applyRequestFilters);
-        document.getElementById('resetRequestFiltersBtn').addEventListener('click', resetRequestFilters);
-        // Чат
-        document.getElementById('closeChatBtn').addEventListener('click', closeChat);
-        document.getElementById('chatSendBtn').addEventListener('click', sendMessage);
-        document.getElementById('chatInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-        document.getElementById('attachFileBtn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('attachmentOptions').classList.toggle('hidden'); });
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#attachmentOptions') && !e.target.closest('#attachFileBtn')) { document.getElementById('attachmentOptions').classList.add('hidden'); }
-        });
-        // Профиль
-        document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
-        document.getElementById('helpBtn').addEventListener('click', showHelpModal);
-        document.getElementById('aboutBtn').addEventListener('click', showAboutModal);
-        document.getElementById('loadMoreHistory').addEventListener('click', loadMoreHistory);
-        // Модальное окно настроек
-        document.getElementById('closeSettingsBtn').addEventListener('click', closeSettingsModal);
-        document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
-        // Кнопки темы
-        document.getElementById('themeLight').addEventListener('click', () => setTheme('light'));
-        document.getElementById('themeDark').addEventListener('click', () => setTheme('dark'));
-        document.getElementById('themeSystem').addEventListener('click', () => setTheme('system'));
-        // Модальное окно помощи
-        document.getElementById('closeHelpBtn').addEventListener('click', closeHelpModal);
-        // Модальное окно "О приложении"
-        document.getElementById('closeAboutBtn').addEventListener('click', closeAboutModal);
-        // Модальное окно подтверждения
-        document.getElementById('cancelConfirmBtn').addEventListener('click', () => { document.getElementById('confirmationModal').classList.add('hidden'); });
-        // --- События для авторизации ---
-        document.getElementById('closeLoginModalBtn').addEventListener('click', closeLoginModal);
-        document.getElementById('closeRegisterModalBtn').addEventListener('click', closeRegisterModal);
-        document.getElementById('showRegisterLink').addEventListener('click', (e) => { e.preventDefault(); closeLoginModal(); showRegisterModal(); });
-        document.getElementById('showLoginLink').addEventListener('click', (e) => { e.preventDefault(); closeRegisterModal(); showLoginModal(); });
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-          e.preventDefault();
-          const email = document.getElementById('loginEmail').value;
-          const password = document.getElementById('loginPassword').value;
-          handleLogin(email, password);
-        });
-        document.getElementById('registerForm').addEventListener('submit', (e) => {
-          e.preventDefault();
-          const email = document.getElementById('registerEmail').value;
-          const password = document.getElementById('registerPassword').value;
-          const confirmPassword = document.getElementById('registerConfirmPassword').value;
-          if (password !== confirmPassword) { showToast("Пароли не совпадают", "error"); return; }
-          handleRegister(email, password);
-        });
-        const modals = ['addRequestModal', 'addTemplateModal', 'settingsModal', 'helpModal', 'aboutModal', 'confirmationModal', 'loginModal', 'registerModal'];
-        modals.forEach(modalId => {
-          document.getElementById(modalId).addEventListener('click', function(e) { if (e.target === this) { this.classList.add('hidden'); } });
-        });
+  // Leave review for completed request
+  function leaveReview(requestId) {
+    const reqElem = document.querySelector(`#customerRequests [data-id="${requestId}"]`);
+    if (!reqElem) return;
+    
+    const title = reqElem.dataset.title || 'Заказ';
+    const rating = prompt('Оцените работу исполнителя от 1 до 5:', '5');
+    
+    if (rating && rating >= 1 && rating <= 5) {
+      const comment = prompt('Оставьте комментарий (необязательно):', '');
+      
+      showToast('Спасибо за ваш отзыв!', 'success');
+      
+      // Update chat action button
+      document.getElementById('chatRequestAction').textContent = 'Отзыв оставлен';
+      document.getElementById('chatRequestAction').classList.add('text-gray-500');
+      document.getElementById('chatRequestAction').onclick = null;
+      
+      // PuzzleBot API call to notify review
+      const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      if (tgChatId) {
+        fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=leave_review&tg_chat_id=' + tgChatId +
+              '&request_id=' + requestId + '&rating=' + rating + '&comment=' + encodeURIComponent(comment || ''))
+          .catch(err => console.error('API Error:', err));
       }
+    }
+  }
+
+  // Handle chat action based on context
+  function handleChatAction() {
+    // This is handled by individual button onclick handlers
+  }
+
+  // Render chat messages
+  function renderChatMessages() {
+    const msgContainer = document.getElementById('chatMessages');
+    msgContainer.innerHTML = '';
+    
+    chatMessages.forEach(msg => {
+      const isCurrentUser = (currentRole === msg.sender);
+      const bubble = document.createElement('div');
+      bubble.className = 'flex ' + (isCurrentUser ? 'justify-end' : 'justify-start');
+      
+      const bubbleInner = document.createElement('div');
+      bubbleInner.className = 'max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ' + 
+        (isCurrentUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none');
+      bubbleInner.innerText = msg.text;
+      
+      bubble.appendChild(bubbleInner);
+      msgContainer.appendChild(bubble);
     });
-  </script>
+    
+    // Scroll to bottom
+    setTimeout(() => {
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+    }, 10);
+  }
+
+  // Send message in chat
+  function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    
+    const senderRole = currentRole === 'customer' ? 'customer' : 'developer';
+    chatMessages.push({ sender: senderRole, text: text });
+    renderChatMessages();
+    input.value = '';
+    
+    // Auto-reply for demo purposes
+    if (senderRole === 'customer') {
+      setTimeout(() => {
+        chatMessages.push({ 
+          sender: 'developer', 
+          text: 'Спасибо за ваше сообщение! Я работаю над вашим запросом и скоро отвечу подробнее.' 
+        });
+        renderChatMessages();
+      }, 1000);
+    } else {
+      setTimeout(() => {
+        chatMessages.push({ 
+          sender: 'customer', 
+          text: 'Получил ваше сообщение, спасибо за информацию!' 
+        });
+        renderChatMessages();
+      }, 1000);
+    }
+  }
+
+  // Show attachment options
+  function showAttachmentOptions() {
+    const options = ['Файл', 'Фото', 'Документ'];
+    let optionsHTML = options.map(opt => 
+      `<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" onclick="attachFile('${opt.toLowerCase()}')">${opt}</div>`
+    ).join('');
+    
+    alert('В демо-версии функция отправки вложений не реализована');
+  }
+
+  // Attach file (demo)
+  function attachFile(type) {
+    showToast(`Функция отправки ${type} в демо-версии не реализована`, 'info');
+  }
+
+  // Close chat overlay
+  function closeChat() {
+    document.getElementById('chatOverlay').classList.add('hidden');
+    currentChatRequestId = null;
+    chatMessages = [];
+  }
+
+  // Toggle notifications panel
+  function toggleNotifications() {
+    const panel = document.getElementById('notifPanel');
+    panel.classList.toggle('hidden');
+    
+    if (!panel.classList.contains('hidden')) {
+      document.getElementById('notifDot').style.display = 'none';
+      
+      // Hide panel when clicking outside
+      setTimeout(() => {
+        document.addEventListener('click', function outsideClickHandler(e) {
+          if (!panel.contains(e.target) && e.target.id !== 'notifIconWrapper' && !e.target.closest('#notifIconWrapper')) {
+            panel.classList.add('hidden');
+            document.removeEventListener('click', outsideClickHandler);
+          }
+        });
+      }, 10);
+    }
+  }
+
+  // Connect wallet (simulation)
+  function connectWallet() {
+    walletConnected = true;
+    tonBalance = 150;
+    const dummyAddress = 'EQC' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    document.getElementById('connectWalletBtn').classList.add('hidden');
+    document.getElementById('walletAddress').innerText = dummyAddress;
+    document.getElementById('walletBalance').innerText = tonBalance + ' TON';
+    document.getElementById('walletInfo').classList.remove('hidden');
+    
+    showToast('TON кошелек успешно подключен', 'success');
+    
+    // PuzzleBot API call to notify wallet connection
+    const tgChatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    if (tgChatId) {
+      fetch('https://api.puzzlebot.top/?token=nGEM0z6XIIJB3ho7lI0fC9KchK611sP0&method=sendCommand&command_name=wallet_connected&tg_chat_id=' + tgChatId)
+        .catch(err => console.error('API Error:', err));
+    }
+  }
+
+  // Disconnect wallet
+  function disconnectWallet() {
+    walletConnected = false;
+    tonBalance = 0;
+    
+    document.getElementById('connectWalletBtn').classList.remove('hidden');
+    document.getElementById('walletInfo').classList.add('hidden');
+    
+    showToast('TON кошелек отключен', 'info');
+  }
+
+  // Open article
+  function openArticle(id) {
+    const article = articles[id];
+    if (!article) return;
+    
+    document.getElementById('articleTitle').innerText = article.title;
+    document.getElementById('articleContent').innerHTML = article.content;
+    document.getElementById('articleOverlay').classList.remove('hidden');
+  }
+
+  // Close article overlay
+  function closeArticle() {
+    document.getElementById('articleOverlay').classList.add('hidden');
+  }
+
+  // Toggle market filters
+  function toggleFilters() {
+    const filters = document.getElementById('marketFilters');
+    filters.classList.toggle('hidden');
+  }
+
+  // Reset market filters
+  function resetFilters() {
+    document.querySelectorAll('#marketFilters input').forEach(input => {
+      input.value = '';
+    });
+    document.querySelector('#marketFilters select').value = 'Все';
+  }
+
+  // Apply market filters
+  function applyFilters() {
+    // In a real app, this would filter the template list
+    showToast('Фильтры применены', 'success');
+    document.getElementById('marketFilters').classList.add('hidden');
+  }
+
+  // Show toast notification
+  function showToast(message, type = 'info') {
+    const colors = {
+      'info': 'bg-blue-500',
+      'success': 'bg-green-500',
+      'error': 'bg-red-500',
+      'warning': 'bg-yellow-500'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-16 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded-lg shadow-lg ${colors[type]} fade-in`;
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  // Add to history list
+  function addToHistory(text, amount, iconName, color) {
+    const amountEl = amount > 0 ? 
+      `<div class="text-green-500 font-medium">+${amount} TON</div>` : 
+      `<div class="text-red-500 font-medium">${amount} TON</div>`;
+    
+    const historyItem = document.createElement('li');
+    historyItem.className = 'flex justify-between items-start';
+    historyItem.innerHTML = `
+      <div class="flex items-start">
+        <div class="bg-${color}-100 p-1 rounded mr-2">
+          <ion-icon name="${iconName}" class="text-${color}-600"></ion-icon>
+        </div>
+        <div>
+          <div>${text}</div>
+          <div class="text-xs text-gray-400">Только что</div>
+        </div>
+      </div>
+      ${amountEl}
+    `;
+    
+    const historyList = document.querySelector('#tabContent-profile ul');
+    historyList.insertBefore(historyItem, historyList.firstChild);
+  }
+
+  // Initialize profile info from Telegram WebApp
+  (function initProfile() {
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    if (tg && tg.initDataUnsafe) {
+      const user = tg.initDataUnsafe.user;
+      if (user) {
+        const name = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+        document.getElementById('profileName').innerText = name;
+        
+        // Set avatar initial
+        document.getElementById('profileAvatar').textContent = user.first_name ? user.first_name[0].toUpperCase() : 'П';
+        
+        if (user.username) {
+          document.getElementById('profileUsername').innerText = '@' + user.username;
+        }
+        
+        // For demo purposes, auto-connect wallet if Telegram user
+        if (!walletConnected) {
+          setTimeout(connectWallet, 1000);
+        }
+      }
+    }
+  })();
+
+  // Set initial view
+  updateTopBarTitle();
+  updateRequestsView();
+  updateMarketView();
+  
+  // Initialize file input for template upload
+  document.getElementById('templateFile').addEventListener('change', function(e) {
+    const fileName = e.target.files[0]?.name;
+    if (fileName) {
+      const fileNameEl = document.getElementById('templateFileName');
+      fileNameEl.textContent = fileName;
+      fileNameEl.classList.remove('hidden');
+    }
+  });
+  
+  // Initialize Telegram WebApp if available
+  if (window.Telegram) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+  }
+</script>
 
 </body>
 </html>
