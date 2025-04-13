@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MiniApp</title>
-  <!-- Подключаем Tailwind CSS -->
+  <!-- Подключаем Tailwind CSS (для продакшена рекомендуется использовать сборку через PostCSS) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Ionicons -->
   <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
@@ -45,6 +45,7 @@
   </style>
 </head>
 <body class="bg-white text-black font-sans antialiased">
+
   <!-- Top Bar -->
   <div id="topBar" class="fixed top-0 left-0 w-full h-12 flex items-center justify-center border-b bg-white font-semibold text-gray-800 relative z-10 shadow-sm">
     <span id="topBarTitle">Заявки</span>
@@ -62,7 +63,6 @@
   </div>
 
   <!-- Основные разделы -->
-  <!-- Здесь оставляем разметку для различных вкладок; основной раздел (заявки) показан ниже -->
   <div id="tabContent-articles" class="tabContent px-4 mt-12 pb-16 hidden">
     <div class="relative mb-4">
       <input type="text" id="articleSearch" placeholder="Поиск статей..." class="w-full border border-gray-300 rounded-full px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent smooth-transition">
@@ -220,15 +220,18 @@
           <div id="walletBalance" class="font-semibold">0 TON</div>
         </div>
       </div>
+      <!-- Кнопка пополнения баланса -->
       <button id="topUpBalanceBtn" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md mt-2">
         Пополнить баланс
       </button>
     </div>
+    <!-- Кнопки для настроек, помощи, О приложении -->
     <div class="flex justify-around mt-4">
       <button id="settingsBtn" class="px-4 py-2 bg-gray-200 rounded-md">Настройки</button>
       <button id="helpBtn" class="px-4 py-2 bg-gray-200 rounded-md">Помощь</button>
       <button id="aboutBtn" class="px-4 py-2 bg-gray-200 rounded-md">О приложении</button>
     </div>
+    <!-- Кнопка редактирования профиля -->
     <button id="editProfileBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-md mt-4">
       Редактировать профиль
     </button>
@@ -311,49 +314,168 @@
     </div>
   </div>
 
-  <!-- Модальное окно авторизации через Telegram -->
+  <!-- Modal: Login -->
   <div id="loginModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
-      <div class="flex justify-center items-center mb-4">
-        <h3 class="text-lg font-semibold">Вход через Telegram</h3>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Вход</h3>
+        <button id="closeLoginModalBtn" class="text-gray-500 hover:text-gray-700 smooth-transition">
+          <ion-icon name="close-outline" class="text-xl"></ion-icon>
+        </button>
       </div>
-      <!-- Только Telegram-виджет -->
-      <div class="flex justify-center">
-        <!-- Замените "your_bot_username" на имя вашего Telegram-бота (без "@"!) -->
-        <script async src="https://telegram.org/js/telegram-widget.js?7"
-                data-telegram-login="Freehamster_bot"
-                data-size="large"
-                data-userpic="false"
-                data-request-access="write"
-                data-onauth="onTelegramAuth(user)">
-        </script>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="loginEmail" class="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" id="loginEmail" required placeholder="you@example.com" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label for="loginPassword" class="block text-sm font-medium text-gray-700">Пароль</label>
+          <input type="password" id="loginPassword" required placeholder="Ваш пароль" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <button type="submit" class="w-full flex justify-center py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+          Войти
+        </button>
+      </form>
+      <p class="text-sm text-center text-gray-600 mt-4">
+        Нет аккаунта? <a href="#" id="showRegisterLink" class="text-blue-500 hover:underline">Зарегистрироваться</a>
+      </p>
+      <!-- Кнопка социальной авторизации Google -->
+      <button type="button" class="w-full flex justify-center py-2 px-4 bg-red-500 text-white rounded-md hover:bg-red-600 mt-4" id="googleAuthBtn">
+        Войти через Google
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Register -->
+  <div id="registerModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Регистрация</h3>
+        <button id="closeRegisterModalBtn" class="text-gray-500 hover:text-gray-700 smooth-transition">
+          <ion-icon name="close-outline" class="text-xl"></ion-icon>
+        </button>
       </div>
-      <p class="text-xs text-gray-500 text-center mt-4">
-        После авторизации через Telegram вы получите доступ к приложению.
+      <form id="registerForm" class="space-y-4">
+        <div>
+          <label for="registerEmail" class="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" id="registerEmail" required placeholder="you@example.com" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label for="registerPassword" class="block text-sm font-medium text-gray-700">Пароль</label>
+          <input type="password" id="registerPassword" required placeholder="Ваш пароль" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label for="registerConfirmPassword" class="block text-sm font-medium text-gray-700">Подтвердите пароль</label>
+          <input type="password" id="registerConfirmPassword" required placeholder="Повторите пароль" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <button type="submit" class="w-full flex justify-center py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+          Зарегистрироваться
+        </button>
+      </form>
+      <p class="text-sm text-center text-gray-600 mt-4">
+        Есть аккаунт? <a href="#" id="showLoginLink" class="text-blue-500 hover:underline">Войти</a>
       </p>
     </div>
   </div>
 
-  <!-- Загрузочный оверлей -->
-  <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div id="loadingMessage" class="text-white text-lg"></div>
+  <!-- Modal: Confirmation -->
+  <div id="confirmationModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-sm p-4 slide-up">
+      <div class="text-center mb-4">
+        <ion-icon name="help-circle-outline" class="text-4xl text-yellow-500 mb-2"></ion-icon>
+        <h3 id="confirmationTitle" class="text-lg font-semibold">Подтвердите действие</h3>
+        <p id="confirmationMessage" class="text-sm text-gray-600 mt-1">Вы уверены, что хотите выполнить это действие?</p>
+      </div>
+      <div class="flex justify-center space-x-3">
+        <button id="cancelConfirmBtn" class="px-4 py-2 text-sm text-gray-600 rounded-lg border hover:bg-gray-100 smooth-transition">Отмена</button>
+        <button id="confirmActionBtn" class="px-4 py-2 text-sm text-white bg-blue-500 rounded-lg hover:bg-blue-600 smooth-transition">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Profile -->
+  <div id="editProfileModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Редактировать профиль</h3>
+        <button id="closeEditProfileModalBtn" class="text-gray-500 hover:text-gray-700 smooth-transition">
+          <ion-icon name="close-outline" class="text-xl"></ion-icon>
+        </button>
+      </div>
+      <form id="editProfileForm" class="space-y-4">
+        <div>
+          <label for="editFirstName" class="block text-sm font-medium text-gray-700">Имя</label>
+          <input type="text" id="editFirstName" class="w-full border border-gray-300 rounded-md px-3 py-2" />
+        </div>
+        <div>
+          <label for="editLastName" class="block text-sm font-medium text-gray-700">Фамилия</label>
+          <input type="text" id="editLastName" class="w-full border border-gray-300 rounded-md px-3 py-2" />
+        </div>
+        <div>
+          <label for="editUsername" class="block text-sm font-medium text-gray-700">Username</label>
+          <input type="text" id="editUsername" class="w-full border border-gray-300 rounded-md px-3 py-2" />
+        </div>
+        <button type="submit" class="w-full flex justify-center py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600">Сохранить</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Payment (Пополнение баланса) -->
+  <div id="paymentModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-md p-6 slide-up">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Пополнить баланс</h3>
+        <button id="closePaymentModalBtn" class="text-gray-500 hover:text-gray-700 smooth-transition">
+          <ion-icon name="close-outline" class="text-xl"></ion-icon>
+        </button>
+      </div>
+      <form id="paymentForm" class="space-y-4">
+        <div>
+          <label for="paymentAmount" class="block text-sm font-medium text-gray-700">Сумма (TON)</label>
+          <input type="number" id="paymentAmount" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Введите сумму" />
+        </div>
+        <button type="submit" class="w-full flex justify-center py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600">Пополнить</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Help -->
+  <div id="helpModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
+      <h3 class="text-lg font-semibold mb-4">Помощь</h3>
+      <p class="text-sm text-gray-700 mb-4">Информация о том, как пользоваться приложением.</p>
+      <div class="flex justify-end">
+        <button id="closeHelpBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: About -->
+  <div id="aboutModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-sm p-6 slide-up">
+      <h3 class="text-lg font-semibold mb-4">О приложении</h3>
+      <p class="text-sm text-gray-700 mb-4">Информация об авторе и версии приложения.</p>
+      <div class="flex justify-end">
+        <button id="closeAboutBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md">Закрыть</button>
+      </div>
+    </div>
   </div>
 
   <!-- Основной скрипт -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-      // Удаляем переменные авто-регистрации, так как используется только Telegram
-      // const autoUserId = "{{USER_ID_TEXT}}";
-      // const autoUsername = "{{USERNAME_TEXT}}";
-      // const autoAvatarUrl = "{{USER_AVATAR_URL}}";
+      // Переменные для авто-регистрации, подставляемые сервером/шаблонизатором
+      const autoUserId = "{{USER_ID_TEXT}}";
+      const autoUsername = "{{USERNAME_TEXT}}";
+      const autoAvatarUrl = "{{USER_AVATAR_URL}}";
 
       // Инициализация Supabase – замените ключ на ваш реальный
       const supabaseUrl = 'https://kwwszbvcwchujbyvswqp.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw';
       const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-      // Определение вкладок и иконок (оставлено без изменений)
+      // Определение названий вкладок и иконок
       const tabTitles = { articles: 'Статьи', market: 'Маркет', requests: 'Заявки', profile: 'Профиль' };
       const tabIcons = {
         articles: { outline: 'document-text-outline', filled: 'document-text' },
@@ -436,8 +558,7 @@
 
       async function initApp() {
         try {
-          const isAuthorized = await checkAuth();
-          if (!isAuthorized) throw new Error('Пользователь не авторизован');
+          await checkAuth();
           switchTab(state.currentTab);
           await loadInitialData();
           initTheme();
@@ -456,72 +577,57 @@
           if (user) {
             state.currentUser = user;
             await loadUserProfile(user.id);
-            return true;
           } else {
-            showLoginModal();
-            return false;
+            if (autoUserId.trim() !== "" && autoUsername.trim() !== "" && autoAvatarUrl.trim() !== "" && autoUserId.trim() !== "{{USER_ID_TEXT}}") {
+              console.log("Выполняется авто-регистрация:", { autoUserId, autoUsername, autoAvatarUrl });
+              await autoRegister();
+            } else {
+              showLoginModal();
+            }
           }
         } catch (error) {
           console.error('Error checking auth:', error);
-          showLoginModal();
-          return false;
+          showToast('Ошибка проверки авторизации', 'error');
         }
       }
 
-      // Убираем авто-регистрацию, оставляем только Telegram
-      // Функция, вызываемая Telegram-виджетом после авторизации.
-      // Объект user содержит: id, first_name, last_name, username, photo_url, auth_date, hash.
-      function onTelegramAuth(user) {
-        console.log("Telegram auth data:", user);
-        // Здесь обязательно нужно выполнить серверную проверку полученного hash (не реализовано в этом примере).
-        // Формируем фиктивный email на основе id Telegram
-        const dummyEmail = `telegram${user.id}@example.com`;
-        const dummyPassword = Math.random().toString(36).substring(2, 10);
-        registerTelegramUser(dummyEmail, dummyPassword, user);
-      }
-
-      // Регистрация/вход через Supabase с данными Telegram
-      async function registerTelegramUser(email, password, telegramData) {
+      async function autoRegister() {
         try {
-          showLoading("Авторизация через Telegram...");
-          // Пробуем зарегистрировать пользователя
+          const dummyEmail = `user${autoUserId}@example.com`;
+          const dummyPassword = Math.random().toString(36).substring(2, 10);
+          console.log("Попытка регистрации с email:", dummyEmail);
           const { data, error } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password
+            email: dummyEmail,
+            password: dummyPassword
           });
-          if (error) {
-            // Если регистрация не проходит (пользователь уже существует) – выполняем вход
-            const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({
-              email: email,
-              password: password
+          if (error) throw error;
+          const userId = data.user.id;
+          const { error: profileError } = await supabaseClient
+            .from('users')
+            .upsert({
+              id: userId,
+              username: autoUsername,
+              avatar_url: autoAvatarUrl,
+              role: 'customer'
             });
-            if (loginError) throw loginError;
-            state.currentUser = loginData.user;
-          } else {
-            state.currentUser = data.user;
-          }
-          // Записываем или обновляем данные в таблице users
-          const { error: profileError } = await supabaseClient.from('users').upsert({
-            id: state.currentUser.id,
-            username: telegramData.username || telegramData.first_name,
-            avatar_url: telegramData.photo_url || '',
-            role: 'customer'
-          });
           if (profileError) throw profileError;
-          hideLoading();
-          closeLoginModal();
-          showToast("Вы успешно вошли через Telegram", "success");
-          initApp();
-        } catch (err) {
-          hideLoading();
-          console.error("Ошибка авторизации через Telegram:", err);
-          showToast("Ошибка авторизации через Telegram: " + err.message, "error");
+          state.currentUser = data.user;
+          await loadUserProfile(userId);
+          showToast("Пользователь успешно зарегистрирован", "success");
+        } catch (error) {
+          console.error("Ошибка автоматической регистрации:", error);
+          showToast("Ошибка автоматической регистрации: " + error.message, "error");
+          showLoginModal();
         }
       }
 
       async function loadUserProfile(userId) {
         try {
-          const { data, error } = await supabaseClient.from('users').select('*').eq('id', userId).single();
+          const { data, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single();
           if (error) throw error;
           if (data) {
             state.currentUser.profile = data;
@@ -541,7 +647,11 @@
 
       async function loadUserWallet(userId) {
         try {
-          const { data, error } = await supabaseClient.from('wallets').select('*').eq('user_id', userId).single();
+          const { data, error } = await supabaseClient
+            .from('wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
           if (error) throw error;
           if (data) {
             state.walletConnected = true;
@@ -653,7 +763,7 @@
       }
 
       async function loadArticles() {
-        const cacheDuration = 5 * 60 * 1000;
+        const cacheDuration = 5 * 60 * 1000; // 5 минут
         const now = new Date().getTime();
         if (state.articlesCache && state.articlesCacheTimestamp && now - state.articlesCacheTimestamp < cacheDuration) {
           state.articles = state.articlesCache;
@@ -1030,7 +1140,7 @@
         } finally { hideLoading(); }
       }
 
-      // Чат: подписка на новые сообщения в реальном времени
+      // Реализация открытия чата и подписка на новые сообщения в реальном времени
       let chatSubscription = null;
       function subscribeToChat(requestId) {
         if (!requestId) return;
@@ -1535,10 +1645,24 @@
         setTimeout(() => { toast.classList.add('opacity-0', 'transition-opacity', 'duration-300'); setTimeout(() => toast.remove(), 300); }, 3000);
       }
 
-      // --- Модальные окна для авторизации через Telegram ---
+      // --- Модальные окна для авторизации ---
       function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
       function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
-      // Функции для email регистрации и входа удалены – используется только Telegram
+      function showRegisterModal() { document.getElementById('registerModal').classList.remove('hidden'); }
+      function closeRegisterModal() { document.getElementById('registerModal').classList.add('hidden'); }
+
+      async function handleRegister(email, password) {
+        if (!email || !password) { showToast("Email и пароль обязательны", "error"); return; }
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) { console.error("Registration error:", error); showToast("Не удалось зарегистрировать: " + error.message, "error"); }
+        else { showToast("Проверьте почту для подтверждения регистрации", "success"); closeRegisterModal(); showLoginModal(); }
+      }
+
+      async function handleLogin(email, password) {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) { console.error("Login error:", error); showToast("Неверный email или пароль", "error"); }
+        else { showToast("Вы успешно вошли", "success"); state.currentUser = data.user; closeLoginModal(); await loadUserProfile(state.currentUser.id); }
+      }
 
       // Обработка событий
       function setupEventListeners() {
@@ -1613,12 +1737,107 @@
         bindEvent(document.getElementById('closeAboutBtn'), 'click', closeAboutModal);
         // Модальное окно подтверждения
         bindEvent(document.getElementById('cancelConfirmBtn'), 'click', () => { document.getElementById('confirmationModal').classList.add('hidden'); });
+        // События для авторизации
+        bindEvent(document.getElementById('closeLoginModalBtn'), 'click', closeLoginModal);
+        bindEvent(document.getElementById('closeRegisterModalBtn'), 'click', closeRegisterModal);
+        bindEvent(document.getElementById('showRegisterLink'), 'click', (e) => { e.preventDefault(); closeLoginModal(); showRegisterModal(); });
+        bindEvent(document.getElementById('showLoginLink'), 'click', (e) => { e.preventDefault(); closeRegisterModal(); showLoginModal(); });
+        bindEvent(document.getElementById('loginForm'), 'submit', (e) => {
+          e.preventDefault();
+          const email = document.getElementById('loginEmail').value;
+          const password = document.getElementById('loginPassword').value;
+          handleLogin(email, password);
+        });
+        bindEvent(document.getElementById('registerForm'), 'submit', (e) => {
+          e.preventDefault();
+          const email = document.getElementById('registerEmail').value;
+          const password = document.getElementById('registerPassword').value;
+          const confirmPassword = document.getElementById('registerConfirmPassword').value;
+          if (password !== confirmPassword) { showToast("Пароли не совпадают", "error"); return; }
+          handleRegister(email, password);
+        });
+        // Модальные окна: editProfile и payment
+        bindEvent(document.getElementById('editProfileModal'), 'click', function(e) { if (e.target === this) { this.classList.add('hidden'); } });
+        bindEvent(document.getElementById('paymentModal'), 'click', function(e) { if (e.target === this) { this.classList.add('hidden'); } });
+        const modals = ['addRequestModal', 'addTemplateModal', 'settingsModal', 'helpModal', 'aboutModal', 'confirmationModal', 'loginModal', 'registerModal'];
+        modals.forEach(modalId => {
+          bindEvent(document.getElementById(modalId), 'click', function(e) { if (e.target === this) { this.classList.add('hidden'); } });
+        });
       }
 
-      // Запускаем инициализацию приложения (авторизация осуществляется только через Telegram)
-      initApp();
+      // Добавление кнопки для Google OAuth в форме входа уже выполнено в разметке через id "googleAuthBtn"
+      bindEvent(document.getElementById('googleAuthBtn'), 'click', async () => {
+        try {
+          const { data, error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
+          if (error) throw error;
+        } catch (error) {
+          console.error("Google OAuth error:", error);
+          showToast("Ошибка OAuth: " + error.message, "error");
+        }
+      });
 
+      // Редактирование профиля
+      bindEvent(document.getElementById('editProfileBtn'), 'click', () => {
+        document.getElementById('editFirstName').value = state.currentUser.profile.first_name || "";
+        document.getElementById('editLastName').value = state.currentUser.profile.last_name || "";
+        document.getElementById('editUsername').value = state.currentUser.profile.username || "";
+        document.getElementById('editProfileModal').classList.remove('hidden');
+      });
+      bindEvent(document.getElementById('editProfileForm'), 'submit', async (e) => {
+        e.preventDefault();
+        const firstName = document.getElementById('editFirstName').value.trim();
+        const lastName = document.getElementById('editLastName').value.trim();
+        const username = document.getElementById('editUsername').value.trim();
+        try {
+          const { data, error } = await supabaseClient.from('users').update({
+            first_name: firstName,
+            last_name: lastName,
+            username: username
+          }).eq('id', state.currentUser.id);
+          if (error) throw error;
+          showToast("Профиль обновлен", "success");
+          await loadUserProfile(state.currentUser.id);
+          document.getElementById('editProfileModal').classList.add('hidden');
+        } catch (error) {
+          console.error("Error updating profile:", error);
+          showToast("Ошибка обновления профиля", "error");
+        }
+      });
+      bindEvent(document.getElementById('closeEditProfileModalBtn'), 'click', () => {
+        document.getElementById('editProfileModal').classList.add('hidden');
+      });
+
+      // Пополнение баланса
+      bindEvent(document.getElementById('topUpBalanceBtn'), 'click', () => { document.getElementById('paymentModal').classList.remove('hidden'); });
+      bindEvent(document.getElementById('paymentForm'), 'submit', async (e) => {
+        e.preventDefault();
+        const amount = parseFloat(document.getElementById('paymentAmount').value);
+        if (!amount || amount <= 0) {
+          showToast("Введите корректную сумму", "error");
+          return;
+        }
+        try {
+          // Здесь симулируется пополнение баланса; замените на реальную логику получения баланса
+          const currentWallet = { balance: 100, currency: 'TON' };
+          const newBalance = currentWallet.balance + amount;
+          const { error: walletError } = await supabaseClient.from('wallets')
+            .upsert({ user_id: state.currentUser.id, balance: newBalance, currency: 'TON' }, { onConflict: 'user_id' });
+          if (walletError) throw walletError;
+          await supabaseClient.from('transactions')
+            .insert([{ user_id: state.currentUser.id, amount: amount, currency: 'TON', type: 'deposit', description: 'Пополнение баланса' }]);
+          showToast("Баланс пополнен", "success");
+          await loadUserWallet(state.currentUser.id);
+          document.getElementById('paymentModal').classList.add('hidden');
+        } catch (error) {
+          console.error("Ошибка пополнения баланса:", error);
+          showToast("Ошибка пополнения баланса", "error");
+        }
+      });
+      bindEvent(document.getElementById('closePaymentModalBtn'), 'click', () => {
+        document.getElementById('paymentModal').classList.add('hidden');
+      });
     });
   </script>
+
 </body>
 </html>
