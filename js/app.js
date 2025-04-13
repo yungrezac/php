@@ -1,6 +1,13 @@
 // js/app.js
-import { supabase, getOrCreateUser, updateUserRole, loadArticles, loadTemplates, loadCustomerRequests, loadDeveloperRequests, loadNotifications, loadHistory, sendChatMessage, loadChatMessages } from './supabase.js';
-import { showToast, showLoading, hideLoading, renderUserProfile, renderArticles, renderTemplates, renderCustomerRequests, renderChat } from './ui.js';
+import { 
+  supabase, getOrCreateUser, updateUserRole, loadArticles, loadTemplates, 
+  loadCustomerRequests, loadDeveloperRequests, loadNotifications, loadHistory, 
+  sendChatMessage, loadChatMessages, subscribeChatMessages 
+} from './supabase.js';
+import { 
+  showToast, showLoading, hideLoading, renderUserProfile, renderArticles, 
+  renderTemplates, renderCustomerRequests, renderChat, appendChatMessage 
+} from './ui.js';
 
 // Глобальное состояние приложения
 window.app = {
@@ -19,7 +26,9 @@ window.app = {
     historyPage: 1,
     historyPerPage: 5
   },
-  // Функция для открытия статьи (пример)
+  /**
+   * Открытие статьи (пример)
+   */
   openArticle: async function(articleId) {
     showLoading('Загрузка статьи...');
     try {
@@ -31,7 +40,7 @@ window.app = {
       if (error) throw error;
       if (data) {
         showToast(`Открыта статья: ${data.title}`, 'info');
-        // Здесь можно реализовать отображение полного текста статьи
+        // Здесь можно реализовать открытие модального окна с полной статьей
       }
     } catch (err) {
       console.error(err);
@@ -40,7 +49,9 @@ window.app = {
       hideLoading();
     }
   },
-  // Функция для открытия чата заявки
+  /**
+   * Открытие чата заявки и подписка на новые сообщения
+   */
   openRequestChat: async function(requestId) {
     showLoading('Загрузка чата...');
     try {
@@ -51,16 +62,30 @@ window.app = {
         .single();
       if (error) throw error;
       if (!requestData) throw new Error('Заявка не найдена');
-      // Проверяем доступ пользователя
-      if (window.app.state.currentUser.id !== requestData.customer_id &&
-          window.app.state.currentUser.id !== requestData.developer_id) {
+      // Проверяем, что текущий пользователь имеет доступ к чату
+      if (
+        window.app.state.currentUser.id !== requestData.customer_id &&
+        window.app.state.currentUser.id !== requestData.developer_id
+      ) {
         throw new Error('Нет доступа к этому чату');
       }
       window.app.state.currentRequestId = requestId;
       const messages = await loadChatMessages(requestId);
       window.app.state.chatMessages = messages || [];
       renderChat(requestData, window.app.state.chatMessages);
-      // Подписка на новые сообщения (пример; в реальном приложении реализуйте подписку через Realtime API)
+      // Если уже была подписка — отписываемся
+      if (window.app.state.chatSubscription) {
+        supabase.removeSubscription(window.app.state.chatSubscription);
+      }
+      // Подписываемся на новые сообщения
+      window.app.state.chatSubscription = subscribeChatMessages(requestId, (newMsg) => {
+        window.app.state.chatMessages.push(newMsg);
+        appendChatMessage(newMsg);
+        const chatMessages = document.getElementById('chatMessages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
+      // Показываем чат-оверлей
+      document.getElementById('chatOverlay').classList.remove('hidden');
     } catch (err) {
       console.error(err);
       showToast(`Ошибка: ${err.message}`, 'error');
@@ -68,7 +93,9 @@ window.app = {
       hideLoading();
     }
   },
-  // Функция отправки сообщения в чат
+  /**
+   * Отправка сообщения в чат
+   */
   sendMessage: async function() {
     const chatInput = document.getElementById('chatInput');
     const text = chatInput.value.trim();
@@ -77,7 +104,7 @@ window.app = {
     try {
       await sendChatMessage(window.app.state.currentRequestId, window.app.state.currentUser.id, text);
       chatInput.value = '';
-      // После отправки можно заново загрузить сообщения или добавить новое в UI
+      // Можно обновить UI, если не используем подписку реального времени
     } catch (err) {
       console.error(err);
       showToast('Ошибка отправки сообщения', 'error');
@@ -85,7 +112,9 @@ window.app = {
       hideLoading();
     }
   },
-  // Функция создания заявки
+  /**
+   * Создание новой заявки
+   */
   createRequest: async function(requestData) {
     showLoading('Создание заявки...');
     try {
@@ -100,7 +129,6 @@ window.app = {
         .select();
       if (error) throw error;
       showToast('Заявка успешно создана', 'success');
-      // Перезагрузка списка заявок
       await loadAndRenderRequests();
     } catch (err) {
       console.error(err);
@@ -112,7 +140,7 @@ window.app = {
 };
 
 /**
- * Загрузка заявок в зависимости от роли пользователя
+ * Загрузка заявок в зависимости от роли пользователя и рендеринг
  */
 async function loadAndRenderRequests() {
   try {
@@ -124,7 +152,7 @@ async function loadAndRenderRequests() {
     } else {
       requests = await loadDeveloperRequests();
       window.app.state.requests = requests;
-      // Здесь можно реализовать рендеринг заявок для разработчика
+      // Здесь можно добавить рендеринг заявок для разработчика
     }
   } catch (err) {
     console.error(err);
@@ -133,28 +161,7 @@ async function loadAndRenderRequests() {
 }
 
 /**
- * Переключение вкладок
- */
-function switchTab(tab) {
-  if (tab === window.app.state.currentTab) return;
-  // Скрываем текущую вкладку
-  document.querySelectorAll('.tabContent').forEach(el => el.classList.add('hidden'));
-  // Показываем выбранную
-  document.getElementById(`tabContent-${tab}`).classList.remove('hidden');
-  window.app.state.currentTab = tab;
-  // Обновляем заголовок верхней панели
-  const titles = { articles: 'Статьи', market: 'Маркет', requests: 'Заявки', profile: 'Профиль' };
-  document.getElementById('topBarTitle').textContent = titles[tab] || '';
-  // Если вкладка "Статьи" и данные не загружены – загружаем их
-  if (tab === 'articles' && !window.app.state.articlesCache.length) {
-    loadAndRenderArticles();
-  } else if (tab === 'requests') {
-    loadAndRenderRequests();
-  }
-}
-
-/**
- * Загрузка статей с кешированием и рендеринг
+ * Загрузка и рендеринг статей
  */
 async function loadAndRenderArticles() {
   showLoading('Загрузка статей...');
@@ -168,6 +175,23 @@ async function loadAndRenderArticles() {
     showToast('Ошибка загрузки статей', 'error');
   } finally {
     hideLoading();
+  }
+}
+
+/**
+ * Переключение вкладок
+ */
+function switchTab(tab) {
+  if (tab === window.app.state.currentTab) return;
+  document.querySelectorAll('.tabContent').forEach(el => el.classList.add('hidden'));
+  document.getElementById(`tabContent-${tab}`).classList.remove('hidden');
+  window.app.state.currentTab = tab;
+  const titles = { articles: 'Статьи', market: 'Маркет', requests: 'Заявки', profile: 'Профиль' };
+  document.getElementById('topBarTitle').textContent = titles[tab] || '';
+  if (tab === 'articles' && !window.app.state.articlesCache.length) {
+    loadAndRenderArticles();
+  } else if (tab === 'requests') {
+    loadAndRenderRequests();
   }
 }
 
@@ -205,14 +229,61 @@ async function submitNewRequest() {
 }
 
 /**
- * Обработчики модальных окон для добавления шаблонов, настроек, помощи, "О приложении", подтверждения и прочее можно добавить аналогичным образом.
+ * Закрытие окна чата
  */
+function closeChat() {
+  if (window.app.state.chatSubscription) {
+    supabase.removeSubscription(window.app.state.chatSubscription);
+    window.app.state.chatSubscription = null;
+  }
+  document.getElementById('chatOverlay').classList.add('hidden');
+  window.app.state.currentRequestId = null;
+  window.app.state.chatMessages = [];
+}
 
 /**
- * Установка обработчиков событий
+ * Обработка переключения уведомлений
+ */
+function toggleNotifications() {
+  const panel = document.getElementById('notifPanel');
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    document.getElementById('notifDot').classList.add('hidden');
+    supabase.from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', window.app.state.currentUser.id)
+      .eq('is_read', false);
+  }
+}
+
+/**
+ * Пометка всех уведомлений как прочитанные
+ */
+async function markAllAsRead() {
+  showLoading('Обновление уведомлений...');
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', window.app.state.currentUser.id)
+      .eq('is_read', false);
+    if (error) throw error;
+    showToast('Все уведомления помечены как прочитанные', 'success');
+    document.getElementById('notifPanel').classList.add('hidden');
+    document.getElementById('notifDot').classList.add('hidden');
+  } catch (err) {
+    console.error(err);
+    showToast('Ошибка обновления уведомлений', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+/**
+ * Установка обработчиков событий для переключения вкладок, модальных окон, чата и т.д.
  */
 function setupEventListeners() {
-  // Вкладки
+  // Переключение вкладок
   document.getElementById('tab-articles').addEventListener('click', () => switchTab('articles'));
   document.getElementById('tab-market').addEventListener('click', () => switchTab('market'));
   document.getElementById('tab-requests').addEventListener('click', () => switchTab('requests'));
@@ -246,59 +317,7 @@ function setupEventListeners() {
     }
   });
   
-  // Привяжите остальные обработчики для шаблонов, кошелька, настроек, помощи, "О приложении", истории и т.д.
-}
-
-/**
- * Функция переключения уведомлений (показ/скрытие панели)
- */
-function toggleNotifications() {
-  const panel = document.getElementById('notifPanel');
-  panel.classList.toggle('hidden');
-  if (!panel.classList.contains('hidden')) {
-    document.getElementById('notifDot').classList.add('hidden');
-    // Пометить уведомления как прочитанные
-    supabase.from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', window.app.state.currentUser.id)
-      .eq('is_read', false);
-  }
-}
-
-/**
- * Функция пометки всех уведомлений как прочитанные
- */
-async function markAllAsRead() {
-  showLoading('Обновление уведомлений...');
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', window.app.state.currentUser.id)
-      .eq('is_read', false);
-    if (error) throw error;
-    showToast('Все уведомления помечены как прочитанные', 'success');
-    document.getElementById('notifPanel').classList.add('hidden');
-    document.getElementById('notifDot').classList.add('hidden');
-  } catch (err) {
-    console.error(err);
-    showToast('Ошибка обновления уведомлений', 'error');
-  } finally {
-    hideLoading();
-  }
-}
-
-/**
- * Функция закрытия чата
- */
-function closeChat() {
-  if (window.app.state.chatSubscription) {
-    supabase.removeSubscription(window.app.state.chatSubscription);
-    window.app.state.chatSubscription = null;
-  }
-  document.getElementById('chatOverlay').classList.add('hidden');
-  window.app.state.currentRequestId = null;
-  window.app.state.chatMessages = [];
+  // Здесь можно привязать обработчики для шаблонов, кошелька, настроек, помощи, "О приложении", истории и т.д.
 }
 
 /**
@@ -313,7 +332,6 @@ async function init() {
     const user = await getOrCreateUser();
     window.app.state.currentUser = user;
     renderUserProfile(user);
-    // Загрузка данных для заявок, статей и пр.
     await loadAndRenderRequests();
     if (window.app.state.currentTab === 'articles') {
       await loadAndRenderArticles();
