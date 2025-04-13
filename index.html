@@ -31,7 +31,7 @@
     ::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #555; }
     * { scrollbar-width: thin; scrollbar-color: #888 #f1f1f1; }
-    /* Стили для модальных окон */
+    /* Стили модальных окон */
     .modal {
       position: fixed;
       inset: 0;
@@ -63,7 +63,7 @@
   </div>
 
   <!-- Основные разделы (вкладки) -->
-  <!-- Статьи: полный контент -->
+  <!-- Статьи (вывод полного контента) -->
   <div id="tabContent-articles" class="tabContent px-4 mt-12 pb-16 hidden">
     <div id="articlesList" class="space-y-3"></div>
     <div id="articlesLoading" class="flex justify-center py-4 hidden">
@@ -204,18 +204,18 @@
         </div>
       </div>
     </div>
-    <!-- Кнопка для переключения ролей -->
+    <!-- Переключение ролей -->
     <div id="roleSection" class="mb-4">
       <button id="switchRoleBtn" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">Переключить роль</button>
     </div>
-    <!-- Секция пополнения баланса через Cryptobot -->
+    <!-- Пополнение баланса для заказчика -->
     <div id="balanceSection" class="mb-4">
       <div class="text-center">
         <div class="text-lg font-semibold">Ваш баланс: <span id="userBalance">0 TON</span></div>
         <button id="topUpBalanceBtn" class="mt-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Пополнить баланс</button>
       </div>
     </div>
-    <!-- Остальной UI профиля -->
+    <!-- Дополнительные элементы профиля -->
     <div class="flex justify-around mt-4">
       <button id="settingsBtn" class="px-4 py-2 bg-gray-200 rounded-md">Настройки</button>
       <button id="helpBtn" class="px-4 py-2 bg-gray-200 rounded-md">Помощь</button>
@@ -300,7 +300,7 @@
         <div>
           <label for="requestBudget" class="block text-sm font-medium text-gray-700 mb-1">Бюджет (TON)*</label>
           <input type="number" id="requestBudget" min="1" class="w-full border border-gray-300 rounded-lg px-4 py-2">
-          <div class="text-xs text-gray-500 mt-1">К оплате: бюджет + 5% (например, 105% от указанной суммы)</div>
+          <div class="text-xs text-gray-500 mt-1">К оплате: бюджет + 5%</div>
         </div>
         <div>
           <label for="requestDeadline" class="block text-sm font-medium text-gray-700 mb-1">Срок выполнения*</label>
@@ -460,15 +460,15 @@
       <div class="space-y-4">
         <div>
           <h4 class="font-medium mb-2">Как создать заявку?</h4>
-          <p class="text-sm text-gray-600">Перейдите в раздел "Заявки" и нажмите кнопку "Новая заявка". Заполните все обязательные поля, и сумма платежа будет списана с вашего баланса (бюджет + 5%).</p>
+          <p class="text-sm text-gray-600">Перейдите в раздел "Заявки", заполните форму (бюджет + 5% списывается с баланса) и нажмите "Создать заявку".</p>
         </div>
         <div>
           <h4 class="font-medium mb-2">Как пополнить баланс?</h4>
-          <p class="text-sm text-gray-600">В разделе "Профиль" нажмите кнопку "Пополнить баланс" и следуйте инструкциям по оплате через Cryptobot.</p>
+          <p class="text-sm text-gray-600">В разделе "Профиль" нажмите кнопку "Пополнить баланс" и следуйте инструкциям через Cryptobot.</p>
         </div>
         <div>
           <h4 class="font-medium mb-2">Как разместить шаблон?</h4>
-          <p class="text-sm text-gray-600">Переключитесь в режим разработчика, затем в разделе "Маркет" нажмите "Добавить шаблон". При размещении к цене добавляется +5%.</p>
+          <p class="text-sm text-gray-600">Переключитесь в режим разработчика, затем в разделе "Маркет" нажмите "Добавить шаблон". При размещении цена увеличивается на 5%.</p>
         </div>
       </div>
       <div class="flex justify-end mt-6">
@@ -554,7 +554,7 @@
     </button>
   </div>
 
-  <!-- Подключение главного модуля приложения -->
+  <!-- Подключение основного модуля приложения -->
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
