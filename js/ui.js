@@ -8,7 +8,7 @@ export function showToast(message, type = 'info') {
     info: 'bg-blue-500', 
     success: 'bg-green-500', 
     error: 'bg-red-500', 
-    warning: 'bg-yellow-500' 
+    warning: 'bg-yellow-500'
   };
   const icons = {
     info: 'information-circle',
@@ -63,16 +63,16 @@ export function renderUserProfile(profile) {
   if (profile.username && profileUsernameEl) {
     profileUsernameEl.textContent = '@' + profile.username;
   }
-  // Обновляем отображение баланса, если присутствует
+  // Обновление отображения баланса, если он есть
   const balanceEl = document.getElementById('userBalance');
   if (balanceEl && typeof profile.balance === 'number') {
-    balanceEl.textContent = profile.balance + ' TON';
+    balanceEl.textContent = profile.balance + " TON";
   }
 }
 
 /**
  * Рендеринг списка статей.
- * Статьи отображаются полностью (ожидается, что у статьи есть поле content с полным текстом).
+ * Здесь статьи выводятся полностью с использованием поля content.
  */
 export function renderArticles(articles) {
   const list = document.getElementById('articlesList');
@@ -158,6 +158,7 @@ function renderStarsHTML(rating) {
 
 /**
  * Рендеринг списка заявок для заказчика.
+ * Для заказчика показывается бюджет заявки; для разработчика – стоимость с -15% (то есть 85% от бюджета).
  */
 export function renderCustomerRequests(requests) {
   const list = document.getElementById('customerRequestsList');
@@ -176,12 +177,17 @@ export function renderCustomerRequests(requests) {
     else if (req.status === 'in_progress') statusBadge = 'bg-blue-100 text-blue-800';
     else if (req.status === 'completed') statusBadge = 'bg-green-100 text-green-800';
     else if (req.status === 'cancelled') statusBadge = 'bg-gray-100 text-gray-800';
+    
+    // Для разработчика показываем цену заявки с -15%
+    const displayedBudget = window.app.state.currentRole === 'developer' 
+      ? (req.budget * 0.85).toFixed(2) 
+      : req.budget;
+      
     item.innerHTML = `
       <div class="flex justify-between items-start">
         <div>
           <div class="font-medium">${req.title}</div>
-          <!-- Для разработчиков отображаем стоимость с -15% -->
-          <div class="text-sm text-gray-500 mt-1">Бюджет: ${(window.app.state.currentRole === 'developer' ? (req.budget * 0.85).toFixed(2) : req.budget) } TON</div>
+          <div class="text-sm text-gray-500 mt-1">Бюджет: ${displayedBudget} TON</div>
         </div>
         <div class="${statusBadge} text-xs px-2 py-1 rounded-full">${getStatusText(req.status)}</div>
       </div>
