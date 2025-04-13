@@ -1,8 +1,8 @@
 // js/app.js
 import { 
-  supabase, getOrCreateUser, updateUserRole, loadArticles, loadTemplates, 
+  supabase, getOrCreateUser, updateUserRole, updateUserBalance, loadArticles, loadTemplates, 
   loadCustomerRequests, loadDeveloperRequests, loadNotifications, loadHistory, 
-  sendChatMessage, loadChatMessages, subscribeChatMessages 
+  sendChatMessage, loadChatMessages, subscribeChatMessages, getBotInfo 
 } from './supabase.js';
 import { 
   showToast, showLoading, hideLoading, renderUserProfile, renderArticles, 
@@ -27,7 +27,7 @@ window.app = {
     historyPerPage: 5
   },
   /**
-   * Открытие статьи (пример).
+   * Открытие статьи (полный контент).
    */
   openArticle: async function(articleId) {
     showLoading('Загрузка статьи...');
@@ -40,7 +40,7 @@ window.app = {
       if (error) throw error;
       if (data) {
         showToast(`Открыта статья: ${data.title}`, 'info');
-        // Реализуйте логику показа полной статьи (например, модальное окно)
+        // Можно показать полную статью в отдельном модальном окне (в данном примере в списке статьи выводятся полностью)
       }
     } catch (err) {
       console.error(err);
@@ -109,16 +109,34 @@ window.app = {
   },
   /**
    * Создание новой заявки.
+   * При создании проверяется, достаточно ли средств на балансе (1.05 * бюджет).
+   * Если средств недостаточно, пользователь должен пополнить баланс.
    */
   createRequest: async function(requestData) {
+    const totalCost = requestData.budget * 1.05;
+    const currentBalance = window.app.state.currentUser.balance || 0;
+    if (currentBalance < totalCost) {
+      showToast(`Недостаточно средств. Пополните баланс на ${(totalCost - currentBalance).toFixed(2)} TON`, 'error');
+      // Здесь можно вызвать topUpBalance, чтобы пользователь сразу пополнил баланс
+      return;
+    }
     showLoading('Создание заявки...');
     try {
+      // Вычитаем с баланса заказчика сумму totalCost
+      const newBalance = currentBalance - totalCost;
+      await updateUserBalance(window.app.state.currentUser.id, newBalance);
+      // Обновляем локальное состояние
+      window.app.state.currentUser.balance = newBalance;
+      // Обновляем отображение баланса в профиле
+      document.getElementById('userBalance').textContent = newBalance + ' TON';
+      
       const { data, error } = await supabase
         .from('requests')
         .insert([{
           customer_id: window.app.state.currentUser.id,
           ...requestData,
           status: 'open',
+          paid_amount: totalCost, // Сохраняем сумму, которую заказчик оплатил (105%)
           created_at: new Date().toISOString()
         }])
         .select();
@@ -131,23 +149,67 @@ window.app = {
     } finally {
       hideLoading();
     }
+  },
+  /**
+   * Функция для разработчика: завершение заявки.
+   * После завершения разработчику начисляется 85% от бюджета заявки.
+   */
+  completeRequest: async function(requestId) {
+    showLoading('Завершение заявки...');
+    try {
+      // Обновляем статус заявки на "completed"
+      const { error } = await supabase
+        .from('requests')
+        .update({ status: 'completed' })
+        .eq('id', requestId);
+      if (error) throw error;
+      // Находим заявку (предполагается, что поле budget хранит исходную сумму)
+      const { data: requestData } = await supabase
+        .from('requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+      // Начисляем разработчику 85% от бюджета заявки
+      const earning = requestData.budget * 0.85;
+      // Для примера предполагаем, что разработчик имеет баланс в таблице users
+      const developerId = window.app.state.currentUser.id;
+      // Получаем текущий баланс разработчика
+      const { data: devData } = await supabase
+        .from('users')
+        .select('balance')
+        .eq('id', developerId)
+        .single();
+      const newBalance = (devData.balance || 0) + earning;
+      await updateUserBalance(developerId, newBalance);
+      showToast('Заявка завершена. Заработано: ' + earning.toFixed(2) + ' TON', 'success');
+      await loadAndRenderRequests();
+      closeChat();
+    } catch (err) {
+      console.error(err);
+      showToast('Ошибка завершения заявки', 'error');
+    } finally {
+      hideLoading();
+    }
   }
 };
 
 /**
  * Загрузка и рендеринг заявок.
+ * Для заказчика используются заявки из loadCustomerRequests,
+ * для разработчика – loadDeveloperRequests и рендерятся с отображением стоимости 85% от бюджета.
  */
 async function loadAndRenderRequests() {
   try {
-    let requests;
     if (window.app.state.currentRole === 'customer') {
-      requests = await loadCustomerRequests(window.app.state.currentUser.id);
+      const requests = await loadCustomerRequests(window.app.state.currentUser.id);
       window.app.state.requests = requests;
       renderCustomerRequests(requests);
     } else {
-      requests = await loadDeveloperRequests();
+      const requests = await loadDeveloperRequests();
       window.app.state.requests = requests;
-      // Реализуйте рендеринг для разработчика по необходимости
+      // Для разработчика используем аналогичную функцию рендера, которая отображает стоимость с -15%
+      // Здесь для простоты можно переиспользовать renderCustomerRequests – внутри неё условие смотрит на роль.
+      renderCustomerRequests(requests);
     }
   } catch (err) {
     console.error(err);
@@ -237,7 +299,7 @@ function closeChat() {
 }
 
 /**
- * Переключение уведомлений.
+ * Переключение уведомлений (показ/скрытие панели).
  */
 function toggleNotifications() {
   const panel = document.getElementById('notifPanel');
@@ -276,7 +338,9 @@ async function markAllAsRead() {
 
 /**
  * Интеграция с Telegram WebApp API.
- * Если приложение запущено внутри Telegram, расширяем окно, устанавливаем заголовок и добавляем кнопку закрытия.
+ * Расширяем окно, устанавливаем цвет заголовка, вызываем ready() и добавляем кнопку закрытия.
+ * Также получаем данные пользователя Telegram (которые используются в getOrCreateUser).
+ * Дополнительно выполняется демонстрационный вызов getMe через Telegram Bot API.
  */
 function integrateWithTelegram() {
   if (window.Telegram && window.Telegram.WebApp) {
@@ -290,10 +354,19 @@ function integrateWithTelegram() {
         first_name: tgUser.first_name || 'Пользователь',
         last_name: tgUser.last_name || '',
         username: tgUser.username || '',
-        avatar_url: tgUser.photo_url || ''
+        avatar_url: tgUser.photo_url || '',
+        balance: 0
       };
       renderUserProfile(window.app.state.currentUser);
     }
+    const TELEGRAM_BOT_TOKEN = "7320783045:AAEROEaHuhJAp1-i3Ji_iGokgV2UB_YLyeE";
+    fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`)
+      .then(response => response.json())
+      .then(data => {
+        console.log("Telegram Bot Info:", data);
+      })
+      .catch(err => console.error("Ошибка получения данных о боте:", err));
+      
     const closeBtn = document.createElement('button');
     closeBtn.textContent = 'Закрыть приложение';
     closeBtn.className = 'fixed top-2 right-2 bg-red-500 text-white px-3 py-1 rounded';
@@ -301,6 +374,103 @@ function integrateWithTelegram() {
       window.Telegram.WebApp.close();
     });
     document.body.appendChild(closeBtn);
+  }
+}
+
+/**
+ * Функция пополнения баланса с использованием Cryptobot API (демонстрация).
+ * В реальном проекте замените URL и обработку на реальную интеграцию.
+ */
+async function topUpBalance() {
+  // Запрашиваем у пользователя сумму для пополнения
+  const amountStr = prompt("Введите сумму пополнения (TON):");
+  const amount = parseFloat(amountStr);
+  if (isNaN(amount) || amount <= 0) {
+    showToast("Неверная сумма", "error");
+    return;
+  }
+  showLoading("Пополнение баланса...");
+  try {
+    // Демонстрационный вызов к API Cryptobot (замените URL и логику на реальные данные)
+    const response = await fetch("https://api.cryptobot.example.com/topup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: window.app.state.currentUser.id, amount })
+    });
+    // Симуляция успешного ответа
+    // const result = await response.json();
+    // Для демонстрации сразу повышаем баланс
+    const currentBalance = window.app.state.currentUser.balance || 0;
+    const newBalance = currentBalance + amount;
+    await updateUserBalance(window.app.state.currentUser.id, newBalance);
+    window.app.state.currentUser.balance = newBalance;
+    document.getElementById('userBalance').textContent = newBalance + " TON";
+    showToast("Баланс успешно пополнен", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("Ошибка пополнения баланса", "error");
+  } finally {
+    hideLoading();
+  }
+}
+
+/**
+ * Переключение роли между заказчиком и разработчиком.
+ */
+async function switchRole() {
+  const newRole = window.app.state.currentRole === 'customer' ? 'developer' : 'customer';
+  showLoading("Переключение роли...");
+  try {
+    await updateUserRole(window.app.state.currentUser.id, newRole);
+    window.app.state.currentRole = newRole;
+    showToast("Роль переключена: " + (newRole === 'customer' ? "Заказчик" : "Разработчик"), "success");
+    // Обновляем раздел заявок для новой роли
+    switchTab("requests");
+  } catch (err) {
+    console.error(err);
+    showToast("Ошибка переключения роли", "error");
+  } finally {
+    hideLoading();
+  }
+}
+
+/**
+ * Функция для разработчика: завершение заявки.
+ * При завершении разработчику начисляется 85% от бюджета.
+ */
+async function completeRequest(requestId) {
+  showLoading("Завершение заявки...");
+  try {
+    const { data: requestData, error } = await supabase
+      .from('requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+    if (error) throw error;
+    if (!requestData) throw new Error("Заявка не найдена");
+    const earning = requestData.budget * 0.85;
+    // Обновляем статус заявки
+    const { error: updateError } = await supabase
+      .from('requests')
+      .update({ status: 'completed' })
+      .eq('id', requestId);
+    if (updateError) throw updateError;
+    // Начисляем разработчику заработанную сумму
+    const { data: devData } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('id', window.app.state.currentUser.id)
+      .single();
+    const newBalance = (devData.balance || 0) + earning;
+    await updateUserBalance(window.app.state.currentUser.id, newBalance);
+    showToast("Заявка завершена. Заработано: " + earning.toFixed(2) + " TON", "success");
+    await loadAndRenderRequests();
+    closeChat();
+  } catch (err) {
+    console.error(err);
+    showToast("Ошибка завершения заявки", "error");
+  } finally {
+    hideLoading();
   }
 }
 
@@ -341,14 +511,19 @@ function setupEventListeners() {
       document.getElementById('attachmentOptions').classList.add('hidden');
     }
   });
-  // Дополнительные обработчики (шаблоны, кошелек, настройки, история и пр.) можно добавить здесь.
+  
+  // Переключение роли
+  document.getElementById('switchRoleBtn').addEventListener('click', switchRole);
+  
+  // Пополнение баланса
+  document.getElementById('topUpBalanceBtn').addEventListener('click', topUpBalance);
 }
 
 /**
- * Инициализация приложения: интеграция с Telegram, получение/создание пользователя и загрузка начальных данных.
+ * Инициализация приложения: интеграция с Telegram, получение/создание пользователя и загрузка данных.
  */
 async function init() {
-  showLoading('Инициализация приложения...');
+  showLoading("Инициализация приложения...");
   try {
     integrateWithTelegram();
     const user = await getOrCreateUser();
@@ -362,13 +537,13 @@ async function init() {
     }
   } catch (err) {
     console.error(err);
-    showToast(`Ошибка инициализации: ${err.message}`, 'error');
+    showToast(`Ошибка инициализации: ${err.message}`, "error");
   } finally {
     hideLoading();
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   init();
 });
