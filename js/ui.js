@@ -41,7 +41,6 @@ export function hideLoading() {
 
 /**
  * Рендеринг профиля пользователя.
- * Если данные получены из Telegram – используются они.
  */
 export function renderUserProfile(profile) {
   const profileNameEl = document.getElementById('profileName');
@@ -64,10 +63,16 @@ export function renderUserProfile(profile) {
   if (profile.username && profileUsernameEl) {
     profileUsernameEl.textContent = '@' + profile.username;
   }
+  // Обновляем отображение баланса, если присутствует
+  const balanceEl = document.getElementById('userBalance');
+  if (balanceEl && typeof profile.balance === 'number') {
+    balanceEl.textContent = profile.balance + ' TON';
+  }
 }
 
 /**
  * Рендеринг списка статей.
+ * Статьи отображаются полностью (ожидается, что у статьи есть поле content с полным текстом).
  */
 export function renderArticles(articles) {
   const list = document.getElementById('articlesList');
@@ -81,23 +86,12 @@ export function renderArticles(articles) {
   }
   articles.forEach(article => {
     const item = document.createElement('div');
-    item.className = 'flex justify-between items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 smooth-transition';
-    item.onclick = () => window.app.openArticle(article.id);
+    item.className = 'border p-4 rounded-lg mb-4';
     item.innerHTML = `
-      <div class="flex items-start">
-        <div class="bg-blue-100 p-2 rounded-lg mr-3">
-          <ion-icon name="document-text-outline" class="text-blue-600 text-xl"></ion-icon>
-        </div>
-        <div>
-          <div class="font-medium">${article.title}</div>
-          <div class="text-xs text-gray-500 mt-1">${article.description}</div>
-          <div class="flex items-center mt-2 text-xs text-gray-400">
-            <ion-icon name="time-outline" class="mr-1"></ion-icon>
-            <span>${article.reading_time || 5} мин чтения</span>
-          </div>
-        </div>
-      </div>
-      <ion-icon name="chevron-forward-outline" class="text-gray-400 text-xl"></ion-icon>`;
+      <h2 class="text-xl font-bold mb-2">${article.title}</h2>
+      <div class="text-sm text-gray-600 mb-2">${article.description}</div>
+      <div class="text-base text-gray-800">${article.content || "Полный текст статьи отсутствует"}</div>
+    `;
     list.appendChild(item);
   });
 }
@@ -186,7 +180,8 @@ export function renderCustomerRequests(requests) {
       <div class="flex justify-between items-start">
         <div>
           <div class="font-medium">${req.title}</div>
-          <div class="text-sm text-gray-500 mt-1">Бюджет: ${req.budget} TON</div>
+          <!-- Для разработчиков отображаем стоимость с -15% -->
+          <div class="text-sm text-gray-500 mt-1">Бюджет: ${(window.app.state.currentRole === 'developer' ? (req.budget * 0.85).toFixed(2) : req.budget) } TON</div>
         </div>
         <div class="${statusBadge} text-xs px-2 py-1 rounded-full">${getStatusText(req.status)}</div>
       </div>
