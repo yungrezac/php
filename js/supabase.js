@@ -1,12 +1,12 @@
 // js/supabase.js
 
 const SUPABASE_URL = 'https://kwwszbvcwchujbyvswqp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw'; // Замените на ваш публичный ключ с ограниченными правами
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3N6YnZjd2NodWpieXZzd3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyMTIyNDcsImV4cCI6MjA1ODc4ODI0N30.3HBMf8zoj-8fzjZOD-R3Oh86jTtGg807Oj7Be1VjFEw'; // Замените на ваш реальный публичный ключ
 export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
- * Получает id пользователя.
- * Если приложение запущено внутри Telegram – используется id Telegram-пользователя.
+ * Получение id пользователя.
+ * Если приложение запущено внутри Telegram – используется id пользователя Telegram.
  * Иначе берётся значение из localStorage или генерируется новый UUID.
  */
 export async function getOrCreateUser() {
@@ -77,7 +77,7 @@ export async function updateUserBalance(userId, newBalance) {
 }
 
 /**
- * Загрузка статей – статьи содержат поле content с полным текстом.
+ * Загрузка статей (ожидается, что статьи содержат поле content с полным текстом).
  */
 export async function loadArticles() {
   const { data, error } = await supabase
