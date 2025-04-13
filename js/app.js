@@ -27,7 +27,7 @@ window.app = {
     historyPerPage: 5
   },
   /**
-   * Открытие статьи (пример)
+   * Открытие статьи (пример).
    */
   openArticle: async function(articleId) {
     showLoading('Загрузка статьи...');
@@ -40,7 +40,7 @@ window.app = {
       if (error) throw error;
       if (data) {
         showToast(`Открыта статья: ${data.title}`, 'info');
-        // Здесь можно реализовать открытие модального окна с полной статьей
+        // Реализуйте логику показа полной статьи (например, модальное окно)
       }
     } catch (err) {
       console.error(err);
@@ -50,7 +50,7 @@ window.app = {
     }
   },
   /**
-   * Открытие чата заявки и подписка на новые сообщения
+   * Открытие чата заявки и подписка на новые сообщения.
    */
   openRequestChat: async function(requestId) {
     showLoading('Загрузка чата...');
@@ -62,7 +62,6 @@ window.app = {
         .single();
       if (error) throw error;
       if (!requestData) throw new Error('Заявка не найдена');
-      // Проверяем, что текущий пользователь имеет доступ к чату
       if (
         window.app.state.currentUser.id !== requestData.customer_id &&
         window.app.state.currentUser.id !== requestData.developer_id
@@ -73,18 +72,15 @@ window.app = {
       const messages = await loadChatMessages(requestId);
       window.app.state.chatMessages = messages || [];
       renderChat(requestData, window.app.state.chatMessages);
-      // Если уже была подписка — отписываемся
       if (window.app.state.chatSubscription) {
         supabase.removeSubscription(window.app.state.chatSubscription);
       }
-      // Подписываемся на новые сообщения
       window.app.state.chatSubscription = subscribeChatMessages(requestId, (newMsg) => {
         window.app.state.chatMessages.push(newMsg);
         appendChatMessage(newMsg);
         const chatMessages = document.getElementById('chatMessages');
         chatMessages.scrollTop = chatMessages.scrollHeight;
       });
-      // Показываем чат-оверлей
       document.getElementById('chatOverlay').classList.remove('hidden');
     } catch (err) {
       console.error(err);
@@ -94,7 +90,7 @@ window.app = {
     }
   },
   /**
-   * Отправка сообщения в чат
+   * Отправка сообщения в чат.
    */
   sendMessage: async function() {
     const chatInput = document.getElementById('chatInput');
@@ -104,7 +100,6 @@ window.app = {
     try {
       await sendChatMessage(window.app.state.currentRequestId, window.app.state.currentUser.id, text);
       chatInput.value = '';
-      // Можно обновить UI, если не используем подписку реального времени
     } catch (err) {
       console.error(err);
       showToast('Ошибка отправки сообщения', 'error');
@@ -113,7 +108,7 @@ window.app = {
     }
   },
   /**
-   * Создание новой заявки
+   * Создание новой заявки.
    */
   createRequest: async function(requestData) {
     showLoading('Создание заявки...');
@@ -140,7 +135,7 @@ window.app = {
 };
 
 /**
- * Загрузка заявок в зависимости от роли пользователя и рендеринг
+ * Загрузка и рендеринг заявок.
  */
 async function loadAndRenderRequests() {
   try {
@@ -152,7 +147,7 @@ async function loadAndRenderRequests() {
     } else {
       requests = await loadDeveloperRequests();
       window.app.state.requests = requests;
-      // Здесь можно добавить рендеринг заявок для разработчика
+      // Реализуйте рендеринг для разработчика по необходимости
     }
   } catch (err) {
     console.error(err);
@@ -161,7 +156,7 @@ async function loadAndRenderRequests() {
 }
 
 /**
- * Загрузка и рендеринг статей
+ * Загрузка и рендеринг статей.
  */
 async function loadAndRenderArticles() {
   showLoading('Загрузка статей...');
@@ -179,7 +174,7 @@ async function loadAndRenderArticles() {
 }
 
 /**
- * Переключение вкладок
+ * Переключение вкладок.
  */
 function switchTab(tab) {
   if (tab === window.app.state.currentTab) return;
@@ -196,21 +191,21 @@ function switchTab(tab) {
 }
 
 /**
- * Открытие модального окна создания заявки
+ * Открытие модального окна создания заявки.
  */
 function openCreateRequestModal() {
   document.getElementById('addRequestModal').classList.remove('hidden');
 }
 
 /**
- * Закрытие модального окна создания заявки
+ * Закрытие модального окна создания заявки.
  */
 function closeCreateRequestModal() {
   document.getElementById('addRequestModal').classList.add('hidden');
 }
 
 /**
- * Обработка отправки новой заявки
+ * Обработка отправки новой заявки.
  */
 async function submitNewRequest() {
   const title = document.getElementById('requestTitle').value.trim();
@@ -229,7 +224,7 @@ async function submitNewRequest() {
 }
 
 /**
- * Закрытие окна чата
+ * Закрытие окна чата.
  */
 function closeChat() {
   if (window.app.state.chatSubscription) {
@@ -242,7 +237,7 @@ function closeChat() {
 }
 
 /**
- * Обработка переключения уведомлений
+ * Переключение уведомлений.
  */
 function toggleNotifications() {
   const panel = document.getElementById('notifPanel');
@@ -257,7 +252,7 @@ function toggleNotifications() {
 }
 
 /**
- * Пометка всех уведомлений как прочитанные
+ * Пометка всех уведомлений как прочитанные.
  */
 async function markAllAsRead() {
   showLoading('Обновление уведомлений...');
@@ -280,7 +275,37 @@ async function markAllAsRead() {
 }
 
 /**
- * Установка обработчиков событий для переключения вкладок, модальных окон, чата и т.д.
+ * Интеграция с Telegram WebApp API.
+ * Если приложение запущено внутри Telegram, расширяем окно, устанавливаем заголовок и добавляем кнопку закрытия.
+ */
+function integrateWithTelegram() {
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.expand();
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.setHeaderColor('#3b82f6');
+    const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+    if (tgUser) {
+      window.app.state.currentUser = {
+        id: tgUser.id.toString(),
+        first_name: tgUser.first_name || 'Пользователь',
+        last_name: tgUser.last_name || '',
+        username: tgUser.username || '',
+        avatar_url: tgUser.photo_url || ''
+      };
+      renderUserProfile(window.app.state.currentUser);
+    }
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Закрыть приложение';
+    closeBtn.className = 'fixed top-2 right-2 bg-red-500 text-white px-3 py-1 rounded';
+    closeBtn.addEventListener('click', () => {
+      window.Telegram.WebApp.close();
+    });
+    document.body.appendChild(closeBtn);
+  }
+}
+
+/**
+ * Установка обработчиков событий.
  */
 function setupEventListeners() {
   // Переключение вкладок
@@ -316,22 +341,21 @@ function setupEventListeners() {
       document.getElementById('attachmentOptions').classList.add('hidden');
     }
   });
-  
-  // Здесь можно привязать обработчики для шаблонов, кошелька, настроек, помощи, "О приложении", истории и т.д.
+  // Дополнительные обработчики (шаблоны, кошелек, настройки, история и пр.) можно добавить здесь.
 }
 
 /**
- * Инициализация приложения: проверка Telegram WebApp, получение/создание пользователя и загрузка начальных данных
+ * Инициализация приложения: интеграция с Telegram, получение/создание пользователя и загрузка начальных данных.
  */
 async function init() {
   showLoading('Инициализация приложения...');
   try {
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.expand();
-    }
+    integrateWithTelegram();
     const user = await getOrCreateUser();
-    window.app.state.currentUser = user;
-    renderUserProfile(user);
+    if (!window.app.state.currentUser) {
+      window.app.state.currentUser = user;
+    }
+    renderUserProfile(window.app.state.currentUser);
     await loadAndRenderRequests();
     if (window.app.state.currentTab === 'articles') {
       await loadAndRenderArticles();
