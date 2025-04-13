@@ -5,9 +5,9 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
- * Получает идентификатор пользователя.
- * Если приложение запущено внутри Telegram – используется id пользователя Telegram.
- * Иначе используется значение из localStorage или генерируется новый UUID.
+ * Получает id пользователя.
+ * Если приложение запущено внутри Telegram – используется id Telegram-пользователя.
+ * Иначе берётся значение из localStorage или генерируется новый UUID.
  */
 export async function getOrCreateUser() {
   let userId = null;
@@ -23,7 +23,7 @@ export async function getOrCreateUser() {
       localStorage.setItem('userId', userId);
     }
   }
-
+  
   let { data, error } = await supabase
     .from('users')
     .select('*')
@@ -40,7 +40,7 @@ export async function getOrCreateUser() {
       last_name: tgData?.last_name || '',
       username: tgData?.username || '',
       role: 'customer',
-      balance: 0, // Начальный баланс
+      balance: 0, // начальный баланс
       created_at: new Date().toISOString()
     };
     let { error: insertError } = await supabase
@@ -77,8 +77,7 @@ export async function updateUserBalance(userId, newBalance) {
 }
 
 /**
- * Загрузка статей.
- * Предполагается, что статьи содержат поле content с полным текстом.
+ * Загрузка статей – статьи содержат поле content с полным текстом.
  */
 export async function loadArticles() {
   const { data, error } = await supabase
