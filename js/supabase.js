@@ -5,14 +5,25 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
- * Получает идентификатор пользователя из localStorage или генерирует новый с помощью crypto.randomUUID()
+ * Получает идентификатор пользователя.
+ * Если приложение запущено внутри Telegram – используем его id из Telegram.WebApp.initDataUnsafe.
+ * Иначе, используем значение из localStorage или генерируем новый UUID.
  */
 export async function getOrCreateUser() {
-  let userId = localStorage.getItem('userId');
-  if (!userId) {
-    userId = crypto.randomUUID();
+  let userId = null;
+  
+  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+    userId = tgUser.id.toString(); // Используем id пользователя Telegram (приводим к строке)
     localStorage.setItem('userId', userId);
+  } else {
+    userId = localStorage.getItem('userId');
+    if (!userId) {
+      userId = crypto.randomUUID();
+      localStorage.setItem('userId', userId);
+    }
   }
+
   let { data, error } = await supabase
     .from('users')
     .select('*')
@@ -22,9 +33,13 @@ export async function getOrCreateUser() {
     throw error;
   }
   if (!data) {
+    // Если данные из Telegram доступны, используем их
+    const tgData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user;
     const newUser = {
       id: userId,
-      first_name: 'Пользователь',
+      first_name: tgData?.first_name || 'Пользователь',
+      last_name: tgData?.last_name || '',
+      username: tgData?.username || '',
       role: 'customer',
       created_at: new Date().toISOString()
     };
@@ -38,7 +53,7 @@ export async function getOrCreateUser() {
 }
 
 /**
- * Обновление роли пользователя
+ * Обновление роли пользователя.
  */
 export async function updateUserRole(userId, role) {
   const { error } = await supabase
@@ -50,7 +65,7 @@ export async function updateUserRole(userId, role) {
 }
 
 /**
- * Загрузка статей
+ * Загрузка статей.
  */
 export async function loadArticles() {
   const { data, error } = await supabase
@@ -62,8 +77,8 @@ export async function loadArticles() {
 }
 
 /**
- * Загрузка шаблонов (только одобренных)
- * filters: { category, price }
+ * Загрузка шаблонов (одобренных).
+ * filters: { category, price }.
  */
 export async function loadTemplates(filters = {}) {
   let query = supabase
@@ -88,7 +103,7 @@ export async function loadTemplates(filters = {}) {
 }
 
 /**
- * Загрузка заявок для заказчика
+ * Загрузка заявок для заказчика.
  */
 export async function loadCustomerRequests(userId, filters = {}) {
   let query = supabase
@@ -105,7 +120,7 @@ export async function loadCustomerRequests(userId, filters = {}) {
 }
 
 /**
- * Загрузка заявок для разработчика
+ * Загрузка заявок для разработчика.
  */
 export async function loadDeveloperRequests(filters = {}) {
   let query = supabase
@@ -135,7 +150,7 @@ export async function loadDeveloperRequests(filters = {}) {
 }
 
 /**
- * Загрузка уведомлений (непрочитанных) для пользователя
+ * Загрузка уведомлений (непрочитанных) для пользователя.
  */
 export async function loadNotifications(userId) {
   const { data, error } = await supabase
@@ -149,7 +164,7 @@ export async function loadNotifications(userId) {
 }
 
 /**
- * Загрузка истории операций
+ * Загрузка истории операций.
  */
 export async function loadHistory(userId, range = { start: 0, end: 4 }) {
   const { data, error } = await supabase
@@ -163,7 +178,7 @@ export async function loadHistory(userId, range = { start: 0, end: 4 }) {
 }
 
 /**
- * Отправка сообщения в чат
+ * Отправка сообщения в чат.
  */
 export async function sendChatMessage(requestId, senderId, message) {
   const { error } = await supabase
@@ -174,7 +189,7 @@ export async function sendChatMessage(requestId, senderId, message) {
 }
 
 /**
- * Загрузка сообщений чата по заявке
+ * Загрузка сообщений чата по заявке.
  */
 export async function loadChatMessages(requestId) {
   const { data, error } = await supabase
@@ -188,7 +203,6 @@ export async function loadChatMessages(requestId) {
 
 /**
  * Подписка на новые сообщения чата для заявки.
- * callback вызывается для каждого нового сообщения.
  */
 export function subscribeChatMessages(requestId, callback) {
   const subscription = supabase
