@@ -3,25 +3,25 @@
 /**
  * Вывод toast-уведомлений.
  */
-export function showToast(message, type = 'info') {
+export function showToast(message, type = "info") {
   const colors = { 
-    info: 'bg-blue-500', 
-    success: 'bg-green-500', 
-    error: 'bg-red-500', 
-    warning: 'bg-yellow-500'
+    info: "bg-blue-500", 
+    success: "bg-green-500", 
+    error: "bg-red-500", 
+    warning: "bg-yellow-500" 
   };
   const icons = {
-    info: 'information-circle',
-    success: 'checkmark-circle',
-    error: 'alert-circle',
-    warning: 'warning'
+    info: "information-circle",
+    success: "checkmark-circle",
+    error: "alert-circle",
+    warning: "warning"
   };
-  const toast = document.createElement('div');
+  const toast = document.createElement("div");
   toast.className = `fixed bottom-16 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded-lg shadow-lg ${colors[type]} fade-in flex items-center`;
   toast.innerHTML = `<ion-icon name="${icons[type]}" class="mr-2"></ion-icon><span>${message}</span>`;
   document.body.appendChild(toast);
   setTimeout(() => {
-    toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+    toast.classList.add("opacity-0", "transition-opacity", "duration-300");
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
@@ -29,54 +29,54 @@ export function showToast(message, type = 'info') {
 /**
  * Показ и скрытие загрузочного оверлея.
  */
-export function showLoading(message = 'Загрузка...') {
-  const loadingMessage = document.getElementById('loadingMessage');
+export function showLoading(message = "Загрузка...") {
+  const loadingMessage = document.getElementById("loadingMessage");
   loadingMessage.textContent = message;
-  document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById("loadingOverlay").classList.remove("hidden");
 }
 
 export function hideLoading() {
-  document.getElementById('loadingOverlay').classList.add('hidden');
+  document.getElementById("loadingOverlay").classList.add("hidden");
 }
 
 /**
  * Рендеринг профиля пользователя.
  */
 export function renderUserProfile(profile) {
-  const profileNameEl = document.getElementById('profileName');
-  const profileUsernameEl = document.getElementById('profileUsername');
-  const profileAvatarEl = document.getElementById('profileAvatar');
+  const profileNameEl = document.getElementById("profileName");
+  const profileUsernameEl = document.getElementById("profileUsername");
+  const profileAvatarEl = document.getElementById("profileAvatar");
   if (profile.first_name) {
-    let name = profile.first_name + (profile.last_name ? ' ' + profile.last_name : '');
+    let name = profile.first_name + (profile.last_name ? " " + profile.last_name : "");
     if (profileNameEl) profileNameEl.textContent = name;
     if (profileAvatarEl) {
       if (profile.avatar_url) {
         profileAvatarEl.style.backgroundImage = `url(${profile.avatar_url})`;
-        profileAvatarEl.style.backgroundSize = 'cover';
-        profileAvatarEl.style.backgroundPosition = 'center';
-        profileAvatarEl.textContent = '';
+        profileAvatarEl.style.backgroundSize = "cover";
+        profileAvatarEl.style.backgroundPosition = "center";
+        profileAvatarEl.textContent = "";
       } else {
         profileAvatarEl.textContent = profile.first_name.charAt(0).toUpperCase();
       }
     }
   }
   if (profile.username && profileUsernameEl) {
-    profileUsernameEl.textContent = '@' + profile.username;
+    profileUsernameEl.textContent = "@" + profile.username;
   }
-  // Обновление отображения баланса, если он есть
-  const balanceEl = document.getElementById('userBalance');
-  if (balanceEl && typeof profile.balance === 'number') {
+  // Обновление баланса
+  const balanceEl = document.getElementById("userBalance");
+  if (balanceEl && typeof profile.balance === "number") {
     balanceEl.textContent = profile.balance + " TON";
   }
 }
 
 /**
  * Рендеринг списка статей.
- * Здесь статьи выводятся полностью с использованием поля content.
+ * Статьи выводятся полностью (используется поле content).
  */
 export function renderArticles(articles) {
-  const list = document.getElementById('articlesList');
-  list.innerHTML = '';
+  const list = document.getElementById("articlesList");
+  list.innerHTML = "";
   if (!articles.length) {
     list.innerHTML = `<div class="text-center py-8 text-gray-500">
       <ion-icon name="document-text-outline" class="text-3xl mb-2"></ion-icon>
@@ -85,8 +85,8 @@ export function renderArticles(articles) {
     return;
   }
   articles.forEach(article => {
-    const item = document.createElement('div');
-    item.className = 'border p-4 rounded-lg mb-4';
+    const item = document.createElement("div");
+    item.className = "border p-4 rounded-lg mb-4";
     item.innerHTML = `
       <h2 class="text-xl font-bold mb-2">${article.title}</h2>
       <div class="text-sm text-gray-600 mb-2">${article.description}</div>
@@ -98,18 +98,19 @@ export function renderArticles(articles) {
 
 /**
  * Рендеринг списка шаблонов.
+ * Цена для покупателя = базовая цена * 1.05 (наценка 5%).
  */
 export function renderTemplates(templates) {
-  const list = document.getElementById('templatesList');
-  list.innerHTML = '';
+  const list = document.getElementById("templatesList");
+  list.innerHTML = "";
   if (!templates.length) {
-    document.getElementById('noTemplatesMessage').classList.remove('hidden');
+    document.getElementById("noTemplatesMessage").classList.remove("hidden");
     return;
   }
-  document.getElementById('noTemplatesMessage').classList.add('hidden');
+  document.getElementById("noTemplatesMessage").classList.add("hidden");
   templates.forEach(template => {
-    const item = document.createElement('div');
-    item.className = 'relative border rounded-lg p-4 hover:shadow-md smooth-transition';
+    const item = document.createElement("div");
+    item.className = "relative border rounded-lg p-4 hover:shadow-md smooth-transition";
     item.innerHTML = `
       <div class="flex items-start">
         <div class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
@@ -125,7 +126,7 @@ export function renderTemplates(templates) {
             </div>
             <span class="text-xs text-gray-500 ml-1">${template.rating.toFixed(1)} (${template.reviews_count})</span>
           </div>
-          ` : ''}
+          ` : ""}
         </div>
       </div>
       <div class="flex justify-between items-center mt-3 pt-3 border-t">
@@ -140,7 +141,7 @@ export function renderTemplates(templates) {
 }
 
 function renderStarsHTML(rating) {
-  let stars = '';
+  let stars = "";
   const fullStars = Math.floor(rating);
   const halfStar = rating % 1 >= 0.5;
   for (let i = 0; i < fullStars; i++) {
@@ -158,28 +159,28 @@ function renderStarsHTML(rating) {
 
 /**
  * Рендеринг списка заявок для заказчика.
- * Для заказчика показывается бюджет заявки; для разработчика – стоимость с -15% (то есть 85% от бюджета).
+ * Если пользователь в режиме разработчика, цена заявки отображается как 85% от бюджета.
  */
 export function renderCustomerRequests(requests) {
-  const list = document.getElementById('customerRequestsList');
-  list.innerHTML = '';
+  const list = document.getElementById("customerRequestsList");
+  list.innerHTML = "";
   if (!requests.length) {
-    document.getElementById('noCustomerRequests').classList.remove('hidden');
+    document.getElementById("noCustomerRequests").classList.remove("hidden");
     return;
   }
-  document.getElementById('noCustomerRequests').classList.add('hidden');
+  document.getElementById("noCustomerRequests").classList.add("hidden");
   requests.forEach(req => {
-    const item = document.createElement('div');
-    item.className = 'border rounded-lg p-4 hover:shadow-md smooth-transition cursor-pointer';
+    const item = document.createElement("div");
+    item.className = "border rounded-lg p-4 hover:shadow-md smooth-transition cursor-pointer";
     item.onclick = () => window.app.openRequestChat(req.id);
-    let statusBadge = '';
-    if (req.status === 'open') statusBadge = 'bg-orange-100 text-orange-800';
-    else if (req.status === 'in_progress') statusBadge = 'bg-blue-100 text-blue-800';
-    else if (req.status === 'completed') statusBadge = 'bg-green-100 text-green-800';
-    else if (req.status === 'cancelled') statusBadge = 'bg-gray-100 text-gray-800';
+    let statusBadge = "";
+    if (req.status === "open") statusBadge = "bg-orange-100 text-orange-800";
+    else if (req.status === "in_progress") statusBadge = "bg-blue-100 text-blue-800";
+    else if (req.status === "completed") statusBadge = "bg-green-100 text-green-800";
+    else if (req.status === "cancelled") statusBadge = "bg-gray-100 text-gray-800";
     
-    // Для разработчика показываем цену заявки с -15%
-    const displayedBudget = window.app.state.currentRole === 'developer' 
+    // Если роль разработчика – отображаем 85% от бюджета
+    const displayedBudget = window.app.state.currentRole === "developer" 
       ? (req.budget * 0.85).toFixed(2) 
       : req.budget;
       
@@ -200,7 +201,7 @@ export function renderCustomerRequests(requests) {
 }
 
 function getStatusText(status) {
-  const texts = { open: 'Открыта', in_progress: 'В работе', completed: 'Завершена', cancelled: 'Отменена' };
+  const texts = { open: "Открыта", in_progress: "В работе", completed: "Завершена", cancelled: "Отменена" };
   return texts[status] || status;
 }
 
@@ -208,20 +209,20 @@ function formatDate(dateString) {
   const date = new Date(dateString);
   const now = new Date();
   const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'сегодня';
-  else if (diffDays === 1) return 'вчера';
-  else if (diffDays < 7) return diffDays + ' дня назад';
-  else return date.toLocaleDateString('ru-RU');
+  if (diffDays === 0) return "сегодня";
+  else if (diffDays === 1) return "вчера";
+  else if (diffDays < 7) return diffDays + " дня назад";
+  else return date.toLocaleDateString("ru-RU");
 }
 
 /**
  * Рендеринг чата заявки.
  */
 export function renderChat(request, messages) {
-  const chatTitle = document.getElementById('chatRequestTitle');
-  const chatMessages = document.getElementById('chatMessages');
+  const chatTitle = document.getElementById("chatRequestTitle");
+  const chatMessages = document.getElementById("chatMessages");
   chatTitle.textContent = request.title;
-  chatMessages.innerHTML = '';
+  chatMessages.innerHTML = "";
   messages.forEach(msg => {
     appendChatMessage(msg);
   });
@@ -234,24 +235,24 @@ export function renderChat(request, messages) {
  * Добавление нового сообщения в чат (UI).
  */
 export function appendChatMessage(msg) {
-  const chatMessages = document.getElementById('chatMessages');
+  const chatMessages = document.getElementById("chatMessages");
   const isCurrentUser = msg.sender_id === window.app.state.currentUser.id;
-  const bubble = document.createElement('div');
-  bubble.className = 'flex ' + (isCurrentUser ? 'justify-end' : 'justify-start');
-  const bubbleInner = document.createElement('div');
-  bubbleInner.className = 'max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ' +
-    (isCurrentUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none');
+  const bubble = document.createElement("div");
+  bubble.className = "flex " + (isCurrentUser ? "justify-end" : "justify-start");
+  const bubbleInner = document.createElement("div");
+  bubbleInner.className = "max-w-xs lg:max-w-md px-4 py-2 rounded-2xl " +
+    (isCurrentUser ? "bg-blue-500 text-white rounded-br-none" : "bg-gray-200 text-gray-800 rounded-bl-none");
   if (!isCurrentUser) {
-    const senderName = document.createElement('div');
-    senderName.className = 'text-xs font-medium mb-1';
-    senderName.textContent = msg.sender?.first_name || 'Аноним';
+    const senderName = document.createElement("div");
+    senderName.className = "text-xs font-medium mb-1";
+    senderName.textContent = msg.sender?.first_name || "Аноним";
     bubbleInner.appendChild(senderName);
   }
-  const messageContent = document.createElement('div');
+  const messageContent = document.createElement("div");
   messageContent.textContent = msg.message;
   bubbleInner.appendChild(messageContent);
-  const timestamp = document.createElement('div');
-  timestamp.className = 'text-xs mt-1 text-right ' + (isCurrentUser ? 'text-blue-100' : 'text-gray-500');
+  const timestamp = document.createElement("div");
+  timestamp.className = "text-xs mt-1 text-right " + (isCurrentUser ? "text-blue-100" : "text-gray-500");
   timestamp.textContent = formatTime(msg.created_at);
   bubbleInner.appendChild(timestamp);
   bubble.appendChild(bubbleInner);
@@ -260,5 +261,5 @@ export function appendChatMessage(msg) {
 
 function formatTime(dateString) {
   const date = new Date(dateString);
-  return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
