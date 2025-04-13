@@ -6,15 +6,15 @@ export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 /**
  * Получает идентификатор пользователя.
- * Если приложение запущено внутри Telegram – используем его id из Telegram.WebApp.initDataUnsafe.
- * Иначе, используем значение из localStorage или генерируем новый UUID.
+ * Если приложение запущено внутри Telegram – используется id пользователя Telegram.
+ * Иначе используется значение из localStorage или генерируется новый UUID.
  */
 export async function getOrCreateUser() {
   let userId = null;
   
   if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
     const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-    userId = tgUser.id.toString(); // Используем id пользователя Telegram (приводим к строке)
+    userId = tgUser.id.toString();
     localStorage.setItem('userId', userId);
   } else {
     userId = localStorage.getItem('userId');
@@ -33,7 +33,6 @@ export async function getOrCreateUser() {
     throw error;
   }
   if (!data) {
-    // Если данные из Telegram доступны, используем их
     const tgData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user;
     const newUser = {
       id: userId,
@@ -41,6 +40,7 @@ export async function getOrCreateUser() {
       last_name: tgData?.last_name || '',
       username: tgData?.username || '',
       role: 'customer',
+      balance: 0, // Начальный баланс
       created_at: new Date().toISOString()
     };
     let { error: insertError } = await supabase
@@ -65,7 +65,20 @@ export async function updateUserRole(userId, role) {
 }
 
 /**
+ * Обновление баланса пользователя.
+ */
+export async function updateUserBalance(userId, newBalance) {
+  const { error } = await supabase
+    .from('users')
+    .update({ balance: newBalance })
+    .eq('id', userId);
+  if (error) throw error;
+  return true;
+}
+
+/**
  * Загрузка статей.
+ * Предполагается, что статьи содержат поле content с полным текстом.
  */
 export async function loadArticles() {
   const { data, error } = await supabase
@@ -212,4 +225,20 @@ export function subscribeChatMessages(requestId, callback) {
     })
     .subscribe();
   return subscription;
+}
+
+/**
+ * Демонстрационный вызов метода getMe через Telegram Bot API.
+ * (Не используйте токен бота в клиентском коде в продакшене!)
+ */
+export async function getBotInfo() {
+  const TELEGRAM_BOT_TOKEN = "7320783045:AAEROEaHuhJAp1-i3Ji_iGokgV2UB_YLyeE";
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`);
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Ошибка получения информации о боте:", err);
+    return null;
+  }
 }
